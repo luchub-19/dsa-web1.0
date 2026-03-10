@@ -1,6 +1,6 @@
 'use strict';
 
-import type { CodeSegment } from '../types/curriculum';
+import type { CodeSegment, BlankSegment } from '../types/curriculum';
 
 /**
  * Keywords that will be replaced with fill-in-the-blank inputs.
