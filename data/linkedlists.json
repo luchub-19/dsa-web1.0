@@ -1,0 +1,106 @@
+[
+  {
+    "id": "LL-01",
+    "concept": "Linked List là gì & khi nào dùng",
+    "theory_html": "<p>A <strong>linked list</strong> is a set of items where each item is part of a <em>node</em> that also contains a <strong>link</strong> to another node — allowing items to be arranged in a linear order.</p><p>Unlike an array, nodes không cần nằm liền nhau trong bộ nhớ. Kết nối giữa chúng được thực hiện qua <em>pointer</em>.</p><p><strong>Ví dụ kinh điển (Josephus Problem):</strong> N người đứng thành vòng tròn, đếm đến M rồi loại người đó. Linked list mô hình hóa bài toán này tự nhiên hơn array vì ta có thể xóa node bất kỳ trong O(1) khi đã có pointer đến node đó.</p>",
+    "code_snippet": null,
+    "active_recall_q": "Điểm khác biệt cơ bản nhất giữa linked list và array về mặt bộ nhớ là gì?",
+    "feynman_prompt": null
+  },
+  {
+    "id": "LL-02",
+    "concept": "Cấu trúc ListNode — định nghĩa node",
+    "theory_html": "<p>Mỗi node được biểu diễn bằng <code>struct</code> gồm hai thành phần:</p><ul><li><code>data</code>: giá trị lưu trong node.</li><li><code>next</code>: pointer trỏ đến node kế tiếp (hoặc <code>nullptr</code> nếu là node cuối).</li></ul><p>Constructor cho phép tạo node và gán luôn <code>next</code> trong một bước. <code>typedef ListNode *Link</code> tạo alias để code ngắn gọn hơn.</p>",
+    "code_snippet": "struct ListNode {\n    DataType data;\n    ListNode *next;\n    ListNode(DataType data, ListNode *next=nullptr) {\n        this->data = data;\n        this->next = next;\n    }\n};\ntypedef ListNode *Link;",
+    "active_recall_q": "Tại sao tham số `next` trong constructor lại có giá trị mặc định là `nullptr`? Lợi ích thực tế là gì?",
+    "feynman_prompt": "Giải thích dòng `typedef ListNode *Link;` — nó làm gì và tại sao lập trình viên thường dùng kỹ thuật này?"
+  },
+  {
+    "id": "LL-03",
+    "concept": "Tạo node mới bằng `new`",
+    "theory_html": "<p>Để tạo một node mới trên <strong>heap</strong> (bộ nhớ động), ta dùng toán tử <code>new</code>:</p><ul><li>C++ cấp phát vùng nhớ đủ kích thước cho <code>ListNode</code>.</li><li>Constructor được gọi để khởi tạo <code>data</code> và <code>next</code>.</li><li>Trả về pointer trỏ đến vùng nhớ vừa cấp phát.</li></ul><p><strong>Lưu ý:</strong> Khi nói <em>\"node p\"</em>, ta hiểu đây là tắt của <em>\"node được trỏ bởi pointer p\"</em>.</p>",
+    "code_snippet": "ListNode *p = new ListNode(...);",
+    "active_recall_q": "Vùng nhớ cấp phát bởi `new` nằm ở đâu (stack hay heap)? Ai có trách nhiệm giải phóng nó?",
+    "feynman_prompt": "Giải thích điều gì xảy ra từng bước khi C++ thực thi dòng `ListNode *p = new ListNode(...);` — từ lúc yêu cầu bộ nhớ cho đến khi `p` có giá trị."
+  },
+  {
+    "id": "LL-04",
+    "concept": "Xóa node — `delete` và null/dangling pointer",
+    "theory_html": "<p>Sau khi dùng xong một node, cần giải phóng bộ nhớ bằng <code>delete</code>. Có hai mức độ:</p><ul><li><strong>Xóa node đơn:</strong> giải phóng vùng nhớ của node <code>p</code>, nhưng <strong>không</strong> tự động xóa các node mà <code>p</code> trỏ tới.</li><li><strong>Xóa node và toàn bộ chuỗi kế tiếp (<em>deep delete</em>):</strong> cần viết hàm đệ quy hoặc iterative để dọn sạch.</li></ul><p>Sau khi <code>delete p</code>, pointer <code>p</code> trở thành <em>dangling pointer</em> — nên gán lại <code>p = nullptr</code> ngay sau đó.</p>",
+    "code_snippet": "// Xóa đơn giản\nListNode *p;\n...\ndelete p;\n\n// Xóa có hàm wrapper\nvoid deleteNode(ListNode *p)\n{\n    ...\n}\n\n// Xóa sâu (node + toàn bộ chuỗi kế tiếp)\nvoid deepDeleteNode(ListNode *p)\n{\n    ...\n}",
+    "active_recall_q": "Sự khác nhau giữa `deleteNode` và `deepDeleteNode` là gì? Trong tình huống nào bạn cần dùng `deepDeleteNode`?",
+    "feynman_prompt": "Sau khi gọi `delete p;`, điều gì xảy ra với vùng nhớ đó? Và tại sao truy cập `p->data` sau đó lại là hành vi nguy hiểm (undefined behavior)?"
+  },
+  {
+    "id": "LL-05",
+    "concept": "Cấu trúc LinkedList — quản lý danh sách (chỉ `first`)",
+    "theory_html": "<p>Để quản lý cả danh sách, ta cần một <code>struct</code> chứa pointer đến node <strong>đầu tiên</strong> (<code>first</code> hoặc <code>head</code>).</p><ul><li>Khi danh sách rỗng, <code>first = nullptr</code>.</li><li>Mọi thao tác (thêm, xóa, tìm kiếm) đều bắt đầu từ <code>first</code> rồi đi theo chuỗi <code>next</code>.</li></ul>",
+    "code_snippet": "struct LinkedList {\n    ListNode *first; // hoặc ListNode *head;\n    LinkedList() {\n        this->first = nullptr;\n    }\n};",
+    "active_recall_q": "Tại sao ta cần một `struct LinkedList` bọc ngoài `ListNode`? Không dùng nó được không?",
+    "feynman_prompt": "Giải thích tại sao constructor khởi tạo `this->first = nullptr;` — nếu bỏ dòng này, điều gì có thể xảy ra?"
+  },
+  {
+    "id": "LL-06",
+    "concept": "Duyệt danh sách liên kết (Traversal)",
+    "theory_html": "<p>Duyệt linked list là đi qua từng node theo chuỗi <code>next</code>, bắt đầu từ <code>head</code>.</p><p>Thuật toán chuẩn:</p><ol><li>Gán <code>head</code> vào một pointer tạm <code>current</code>.</li><li>Lặp <code>while current != null</code>: xử lý node hiện tại, rồi <code>current = current->next</code>.</li></ol><p>Độ phức tạp: <strong>O(n)</strong> — phải đi qua tất cả n nodes.</p>",
+    "code_snippet": "// Pseudocode duyệt danh sách\nAssign List head to node pointer.\nwhile node pointer is not null\n    Display the value member of the node pointed to by node pointer.\n    Assign node pointer to its own next member.\n\n// Cài đặt C++ tương đương\nListNode *current = first;\nwhile (current != nullptr) {\n    // xử lý current->data\n    current = current->next;\n}",
+    "active_recall_q": "Nếu bạn muốn tìm node áp chót (second-to-last) trong danh sách, bạn cần điều kiện dừng vòng lặp như thế nào?",
+    "feynman_prompt": "Giải thích dòng `current = current->next;` — pointer `current` thay đổi như thế nào trong bộ nhớ sau mỗi lần lặp?"
+  },
+  {
+    "id": "LL-07",
+    "concept": "Cấu trúc LinkedList mở rộng — thêm pointer `last`",
+    "theory_html": "<p>Khi cần thêm node vào <strong>cuối</strong> danh sách thường xuyên, việc duyệt từ <code>first</code> đến cuối mỗi lần tốn O(n). Giải pháp: duy trì thêm pointer <code>last</code> trỏ trực tiếp vào node cuối.</p><ul><li>Thêm vào cuối: O(1) thay vì O(n).</li><li>Cần cập nhật <code>last</code> mỗi khi thêm/xóa node cuối.</li></ul>",
+    "code_snippet": "struct LinkedList {\n    ListNode *first;\n    ListNode *last;\n    LinkedList() {\n        this->first = nullptr;\n        this->last  = nullptr;\n    }\n};",
+    "active_recall_q": "Khi xóa node cuối cùng khỏi danh sách có pointer `last`, ta cần cập nhật những gì để tránh dangling pointer?",
+    "feynman_prompt": "Giải thích tại sao khi danh sách rỗng, cả `first` lẫn `last` đều phải là `nullptr` — hậu quả nếu chỉ set `first = nullptr` mà bỏ qua `last` là gì?"
+  },
+  {
+    "id": "LL-08",
+    "concept": "Tìm kiếm trong danh sách liên kết (Linear Search)",
+    "theory_html": "<p>Vì linked list <strong>không có random access</strong> (khác array), tìm kiếm phải duyệt tuần tự từ đầu đến khi tìm thấy hoặc hết danh sách.</p><ul><li>Nếu tìm thấy: trả về pointer đến node đó.</li><li>Không tìm thấy: trả về <code>nullptr</code>.</li></ul><p>Độ phức tạp: <strong>O(n)</strong> trong trường hợp tệ nhất.</p>",
+    "code_snippet": "ListNode *search(ListNode *first, DataType k) {\n    ListNode *current = first;\n    while (current) {\n        if (current->data == k) return current;\n        current = current->next;\n    }\n    return nullptr;\n}",
+    "active_recall_q": "Hàm `search` trả về `ListNode *` thay vì `bool`. Ưu điểm của thiết kế này là gì so với chỉ trả về true/false?",
+    "feynman_prompt": "Giải thích điều kiện `while (current)` — tại sao viết vậy đúng? Nó tương đương với điều kiện nào tường minh hơn?"
+  },
+  {
+    "id": "LL-09",
+    "concept": "Ordered Linked List — thêm node theo thứ tự",
+    "theory_html": "<p>Một <strong>ordered linked list</strong> duy trì các phần tử theo thứ tự tăng (hoặc giảm). Khi thêm node mới:</p><ol><li>Tạo node mới.</li><li>Nếu danh sách rỗng → node mới trở thành <code>first</code>.</li><li>Ngược lại → duyệt để tìm vị trí đúng (node đầu tiên có giá trị ≥ giá trị mới).</li><li>Chèn node mới <em>trước</em> node đó, hoặc vào cuối nếu không tìm thấy.</li></ol><p>Kỹ thuật <strong>dummy head node</strong>: thêm một node giả ở đầu (không chứa data thực), giúp xử lý trường hợp chèn vào đầu và chèn vào giữa bằng <em>cùng một đoạn code</em>, tránh if/else đặc biệt.</p>",
+    "code_snippet": "// Pseudocode thêm vào ordered linked list\nCreate a new node.\nStore data in the new node.\nif there are no nodes in the list then\n    Make the new node the first node.\nelse\n    Find the first node whose value >= new value,\n        or the end of the list (whichever is first).\n    Insert the new node before the found node,\n        or at the end if no such node was found.",
+    "active_recall_q": "Tại sao việc chèn vào đầu linked list lại cần xử lý riêng (special case) nếu không dùng dummy head node?",
+    "feynman_prompt": "Giải thích ý tưởng 'dummy head node' — node giả này không lưu data thật, vậy nó giải quyết vấn đề lập trình gì cụ thể?"
+  },
+  {
+    "id": "LL-10",
+    "concept": "Circular Linked List",
+    "theory_html": "<p>Trong <strong>circular linked list</strong>, node <em>cuối</em> không trỏ về <code>nullptr</code> mà trỏ lại về node <em>đầu tiên</em> (hoặc ngược lại).</p><ul><li>Không có node nào có <code>next == nullptr</code>.</li><li>Thích hợp cho các bài toán có tính chất <em>vòng</em>: round-robin scheduling, Josephus problem.</li><li>Cần cẩn thận điều kiện dừng khi duyệt — dùng pointer sentinel hoặc đếm số node thay vì kiểm tra <code>nullptr</code>.</li></ul>",
+    "code_snippet": null,
+    "active_recall_q": "Tại sao điều kiện dừng `while (current != nullptr)` không hoạt động khi duyệt circular linked list?",
+    "feynman_prompt": null
+  },
+  {
+    "id": "LL-11",
+    "concept": "Doubly Linked List",
+    "theory_html": "<p>Mỗi node trong <strong>doubly linked list</strong> có <strong>hai pointer</strong>:</p><ul><li><code>next</code>: trỏ đến node kế tiếp (như singly linked list).</li><li><code>prev</code>: trỏ đến node liền trước.</li></ul><p>Ưu điểm: có thể duyệt theo <em>cả hai chiều</em>; xóa node không cần pointer đến node trước (vì đã có <code>prev</code>).<br>Nhược điểm: tốn thêm bộ nhớ (1 pointer mỗi node); thao tác thêm/xóa phức tạp hơn vì phải cập nhật cả <code>next</code> lẫn <code>prev</code>.</p>",
+    "code_snippet": null,
+    "active_recall_q": "Trong singly linked list, để xóa một node giữa danh sách bạn cần pointer đến node liền trước. Doubly linked list giải quyết vấn đề này như thế nào?",
+    "feynman_prompt": null
+  },
+  {
+    "id": "LL-12",
+    "concept": "Generalized List — danh sách tổng quát",
+    "theory_html": "<p>Một <strong>generalized list</strong> (danh sách tổng quát) là dãy hữu hạn các phần tử, trong đó mỗi phần tử có thể là:</p><ul><li>Một giá trị nguyên tố (atom), <strong>hoặc</strong></li><li>Một danh sách con (sub-list) — tạo ra cấu trúc lồng nhau đệ quy.</li></ul><p>Ví dụ: <code>L = ((a,b,c), ((d,e),f), g)</code></p><p>Để biểu diễn, dùng <code>union</code> kết hợp với bit <code>tag</code>: nếu <code>tag = false</code> thì trường <code>data</code> được dùng; nếu <code>tag = true</code> thì trường <code>down</code> (pointer đến sub-list) được dùng.</p>",
+    "code_snippet": "struct GenListNode {\n    bool tag;          // false = atom, true = sublist\n    GenListNode* next; // next node ở cùng level\n    union {\n        DataType    data; // dùng khi tag == false\n        GenListNode* down; // dùng khi tag == true (trỏ vào sub-list)\n    };\n};",
+    "active_recall_q": "Với danh sách `L = ((a,b,c), g)`, có bao nhiêu `GenListNode` cần cấp phát? Vẽ cấu trúc pointer của nó.",
+    "feynman_prompt": "Giải thích tại sao `union` được dùng thay vì hai field riêng biệt `data` và `down` — lợi ích về bộ nhớ là gì?"
+  },
+  {
+    "id": "LL-13",
+    "concept": "So sánh các biến thể Linked List",
+    "theory_html": "<table><thead><tr><th>Loại</th><th>Con trỏ / node</th><th>Duyệt</th><th>Ưu điểm nổi bật</th></tr></thead><tbody><tr><td>Singly</td><td>1 (<code>next</code>)</td><td>1 chiều</td><td>Đơn giản, ít bộ nhớ</td></tr><tr><td>Doubly</td><td>2 (<code>next</code>, <code>prev</code>)</td><td>2 chiều</td><td>Xóa O(1) khi có node pointer</td></tr><tr><td>Circular</td><td>1, cuối → đầu</td><td>Vòng</td><td>Phù hợp bài toán vòng lặp</td></tr><tr><td>Generalized</td><td><code>next</code> + <code>down</code></td><td>Đệ quy</td><td>Biểu diễn cấu trúc lồng nhau</td></tr></tbody></table>",
+    "code_snippet": null,
+    "active_recall_q": "Bạn đang cài đặt một hàng đợi (queue) cần thêm vào cuối O(1) và xóa ở đầu O(1). Bạn chọn biến thể linked list nào và tại sao?",
+    "feynman_prompt": null
+  }
+]

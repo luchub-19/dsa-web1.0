@@ -1,0 +1,122 @@
+[
+  {
+    "id": "exam-ll-insert-tail",
+    "title": "Chèn Node vào Cuối Linked List",
+    "language": "C++17",
+    "language_id": 54,
+    "time_limit_seconds": 2,
+    "memory_limit_mb": 64,
+    "description_html": "<p>Cho một singly linked list và một giá trị nguyên <code>val</code>, hãy viết hàm <code>insertTail</code> để chèn một node mới có giá trị <code>val</code> vào <strong>cuối</strong> danh sách.</p><p>Hàm nhận vào con trỏ <code>head</code> của danh sách (có thể là <code>nullptr</code> nếu danh sách rỗng) và giá trị <code>val</code> cần chèn. Hàm trả về <code>head</code> mới của danh sách sau khi chèn.</p><h4>Định dạng Input</h4><ul><li>Dòng 1: Số nguyên <code>N</code> — số node hiện có trong danh sách (0 ≤ N ≤ 1000).</li><li>Dòng 2 (nếu N &gt; 0): <code>N</code> số nguyên cách nhau bởi dấu cách — giá trị các node theo thứ tự từ đầu đến cuối.</li><li>Dòng cuối: Số nguyên <code>val</code> — giá trị cần chèn vào cuối.</li></ul><h4>Định dạng Output</h4><p>In ra các giá trị của danh sách sau khi chèn, cách nhau bởi dấu cách, kết thúc bằng newline.</p><h4>Ví dụ 1</h4><pre>Input:\n3\n1 2 3\n4\n\nOutput:\n1 2 3 4</pre><h4>Ví dụ 2</h4><pre>Input:\n0\n7\n\nOutput:\n7</pre><h4>Ghi chú</h4><ul><li>Nếu <code>N = 0</code>, danh sách ban đầu rỗng — node mới trở thành node duy nhất.</li><li>Không được tạo danh sách mới từ đầu; phải thao tác trực tiếp trên cấu trúc node đã cho.</li><li>Độ phức tạp mục tiêu: O(N) thời gian, O(1) không gian phụ.</li></ul>",
+    "starter_code": "#include <iostream>\nusing namespace std;\n\nstruct ListNode {\n    int val;\n    ListNode *next;\n    ListNode(int x) : val(x), next(nullptr) {}\n};\n\n// TODO: Implement this function\n// Chèn node mới có giá trị val vào cuối danh sách.\n// Trả về head mới (quan trọng khi danh sách ban đầu rỗng).\nListNode* insertTail(ListNode* head, int val) {\n    \n}\n\n// --- Test harness (không sửa) ---\nListNode* buildList(int arr[], int n) {\n    if (n == 0) return nullptr;\n    ListNode* head = new ListNode(arr[0]);\n    ListNode* cur = head;\n    for (int i = 1; i < n; i++) {\n        cur->next = new ListNode(arr[i]);\n        cur = cur->next;\n    }\n    return head;\n}\n\nvoid printList(ListNode* head) {\n    bool first = true;\n    while (head) {\n        if (!first) cout << \" \";\n        cout << head->val;\n        first = false;\n        head = head->next;\n    }\n    cout << endl;\n}\n\nint main() {\n    int n;\n    cin >> n;\n    int* arr = new int[n + 1];\n    for (int i = 0; i < n; i++) cin >> arr[i];\n    int val;\n    cin >> val;\n    ListNode* head = buildList(arr, n);\n    head = insertTail(head, val);\n    printList(head);\n    delete[] arr;\n    return 0;\n}",
+    "test_cases": [
+      {
+        "label": "Chèn vào cuối: [1,2,3] + 4",
+        "input": "3\n1 2 3\n4",
+        "expected_output": "1 2 3 4",
+        "hidden": false
+      },
+      {
+        "label": "Danh sách rỗng + 7",
+        "input": "0\n7",
+        "expected_output": "7",
+        "hidden": false
+      },
+      {
+        "label": "Một node + 10",
+        "input": "1\n5\n10",
+        "expected_output": "5 10",
+        "hidden": false
+      },
+      {
+        "label": "Hidden: 5 nodes + 6",
+        "input": "5\n1 2 3 4 5\n6",
+        "expected_output": "1 2 3 4 5 6",
+        "hidden": true
+      },
+      {
+        "label": "Hidden: số âm",
+        "input": "3\n-3 -1 0\n-5",
+        "expected_output": "-3 -1 0 -5",
+        "hidden": true
+      },
+      {
+        "label": "Hidden: chèn 0 vào danh sách có 0",
+        "input": "2\n0 0\n0",
+        "expected_output": "0 0 0",
+        "hidden": true
+      }
+    ],
+    "rubric": [
+      "Xử lý đúng trường hợp head == nullptr (danh sách rỗng): node mới trở thành head",
+      "Duyệt đến node cuối bằng vòng lặp while (cur->next != nullptr)",
+      "Gắn node mới vào cur->next, không để dangling pointer",
+      "Trả về head gốc (không phải node mới) trong trường hợp danh sách không rỗng",
+      "Trả về node mới làm head khi danh sách ban đầu rỗng",
+      "Không cấp phát node thừa — đúng 1 lần new ListNode(val)"
+    ]
+  },
+  {
+    "id": "exam-ll-reverse",
+    "title": "Đảo Ngược Singly Linked List",
+    "language": "C++17",
+    "language_id": 54,
+    "time_limit_seconds": 2,
+    "memory_limit_mb": 64,
+    "description_html": "<p>Cho một singly linked list, hãy viết hàm <code>reverseList</code> đảo ngược thứ tự các node <strong>tại chỗ</strong> (in-place) và trả về <code>head</code> mới của danh sách sau khi đảo ngược.</p><p><strong>Ràng buộc quan trọng:</strong> Không được cấp phát node mới (<code>new ListNode</code>). Chỉ được thay đổi các con trỏ <code>next</code> của các node đã có.</p><h4>Định dạng Input</h4><ul><li>Dòng 1: Số nguyên <code>N</code> — số node trong danh sách (1 ≤ N ≤ 10000).</li><li>Dòng 2: <code>N</code> số nguyên cách nhau bởi dấu cách — giá trị các node từ đầu đến cuối.</li></ul><h4>Định dạng Output</h4><p>In ra các giá trị của danh sách sau khi đảo ngược, cách nhau bởi dấu cách, kết thúc bằng newline.</p><h4>Ví dụ 1</h4><pre>Input:\n5\n1 2 3 4 5\n\nOutput:\n5 4 3 2 1</pre><h4>Ví dụ 2</h4><pre>Input:\n1\n42\n\nOutput:\n42</pre><h4>Ví dụ 3</h4><pre>Input:\n2\n7 3\n\nOutput:\n3 7</pre><h4>Gợi ý thuật toán</h4><p>Dùng ba con trỏ <code>prev</code>, <code>current</code>, <code>next_node</code>. Tại mỗi bước: lưu <code>current-&gt;next</code>, đổi <code>current-&gt;next</code> thành <code>prev</code>, dịch <code>prev</code> và <code>current</code> lên một bước. Kết thúc khi <code>current == nullptr</code>; lúc này <code>prev</code> là head mới.</p><h4>Độ phức tạp mục tiêu</h4><ul><li>Thời gian: O(N)</li><li>Không gian: O(1) — không dùng stack, đệ quy hay mảng phụ trợ</li></ul>",
+    "starter_code": "#include <iostream>\nusing namespace std;\n\nstruct ListNode {\n    int val;\n    ListNode *next;\n    ListNode(int x) : val(x), next(nullptr) {}\n};\n\n// TODO: Implement this function\n// Đảo ngược danh sách in-place, trả về head mới.\n// Không được dùng new ListNode bên trong hàm này.\nListNode* reverseList(ListNode* head) {\n    \n}\n\n// --- Test harness (không sửa) ---\nListNode* buildList(int arr[], int n) {\n    if (n == 0) return nullptr;\n    ListNode* head = new ListNode(arr[0]);\n    ListNode* cur = head;\n    for (int i = 1; i < n; i++) {\n        cur->next = new ListNode(arr[i]);\n        cur = cur->next;\n    }\n    return head;\n}\n\nvoid printList(ListNode* head) {\n    bool first = true;\n    while (head) {\n        if (!first) cout << \" \";\n        cout << head->val;\n        first = false;\n        head = head->next;\n    }\n    cout << endl;\n}\n\nint main() {\n    int n;\n    cin >> n;\n    int* arr = new int[n];\n    for (int i = 0; i < n; i++) cin >> arr[i];\n    ListNode* head = buildList(arr, n);\n    ListNode* result = reverseList(head);\n    printList(result);\n    delete[] arr;\n    return 0;\n}",
+    "test_cases": [
+      {
+        "label": "5 nodes: 1→2→3→4→5",
+        "input": "5\n1 2 3 4 5",
+        "expected_output": "5 4 3 2 1",
+        "hidden": false
+      },
+      {
+        "label": "1 node: [42]",
+        "input": "1\n42",
+        "expected_output": "42",
+        "hidden": false
+      },
+      {
+        "label": "2 nodes: [7, 3]",
+        "input": "2\n7 3",
+        "expected_output": "3 7",
+        "hidden": false
+      },
+      {
+        "label": "Hidden: 10 nodes giảm dần",
+        "input": "10\n10 9 8 7 6 5 4 3 2 1",
+        "expected_output": "1 2 3 4 5 6 7 8 9 10",
+        "hidden": true
+      },
+      {
+        "label": "Hidden: tất cả giá trị bằng nhau",
+        "input": "4\n7 7 7 7",
+        "expected_output": "7 7 7 7",
+        "hidden": true
+      },
+      {
+        "label": "Hidden: số âm và dương xen kẽ",
+        "input": "6\n-3 1 -1 2 -2 3",
+        "expected_output": "3 -2 2 -1 1 -3",
+        "hidden": true
+      },
+      {
+        "label": "Hidden: palindrome — kết quả khác input",
+        "input": "5\n1 2 3 2 1",
+        "expected_output": "1 2 3 2 1",
+        "hidden": true
+      }
+    ],
+    "rubric": [
+      "Khởi tạo đúng: prev = nullptr, current = head",
+      "Lưu next_node = current->next trước khi đổi chiều để không mất tham chiếu",
+      "Đổi chiều con trỏ: current->next = prev",
+      "Dịch chuyển cả hai pointer: prev = current, current = next_node",
+      "Trả về prev (không phải head gốc) sau khi vòng lặp kết thúc",
+      "Xử lý đúng trường hợp N = 1: head->next == nullptr, trả về head ngay",
+      "Không cấp phát bộ nhớ mới (new) bên trong reverseList",
+      "Độ phức tạp O(N) — không dùng đệ quy, stack, hay mảng phụ"
+    ]
+  }
+]
