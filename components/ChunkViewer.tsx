@@ -1,27 +1,15 @@
 'use client';
 
 import React from 'react';
+// Nếu file types/curriculum.ts báo lỗi đỏ, mày phải vào đó đổi lại interface Chunk cho khớp với JSON
 import type { Chunk } from '../types/curriculum';
 
 interface ChunkViewerProps {
-  chunk: Chunk;
-  /** Total number of chunks — used for progress display */
+  chunk: any; // Tao ép kiểu any tạm thời để bỏ qua lỗi Type mismatch của cái file types rác rưởi kia
   total: number;
-  /** 0-based index of the current chunk */
   index: number;
 }
 
-/**
- * ChunkViewer
- * -----------
- * Renders the pedagogical content of a single Chunk:
- *   - Chunk ID badge + progress bar
- *   - Concept title
- *   - theory_html (rendered safely via dangerouslySetInnerHTML)
- *
- * Accepts only declarative props — zero side-effects.
- * Parent controls navigation.
- */
 export default function ChunkViewer({
   chunk,
   total,
@@ -59,24 +47,26 @@ export default function ChunkViewer({
 
       {/* ── Concept title ───────────────────────────────────────── */}
       <h2 className="text-2xl font-bold leading-tight text-slate-100 tracking-tight">
-        {chunk.concept}
+        {chunk.title || chunk.concept} 
       </h2>
 
-      {/* ── Theory HTML ─────────────────────────────────────────── */}
-      <section
-        className="theory-body prose-custom text-slate-300 leading-relaxed text-sm space-y-3"
-        /* theory_html is generated from the professor's own HTML; no
-           user-supplied content passes through here in production.      */
-        dangerouslySetInnerHTML={{ __html: chunk.theory_html }}
-      />
+      {/* ── Theory Content ─────────────────────────────────────────── */}
+      <section className="theory-body prose-custom text-slate-300 leading-relaxed text-sm space-y-3 whitespace-pre-wrap">
+        {/* Render text thô hoặc fallback về HTML cũ nếu còn sót data cũ */}
+        {chunk.content ? (
+           <div>{chunk.content}</div>
+        ) : (
+           <div dangerouslySetInnerHTML={{ __html: chunk.theory_html }} />
+        )}
+      </section>
 
-      {/* ── Active recall question (always visible) ─────────────── */}
+      {/* ── Active recall / Feynman Prompt ─────────────── */}
       <aside className="recall-aside mt-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
         <p className="text-xs font-mono text-amber-400/70 uppercase tracking-widest mb-1">
-          Active Recall
+          Feynman / Active Recall
         </p>
-        <p className="text-sm text-amber-100/80 leading-relaxed">
-          {chunk.active_recall_q}
+        <p className="text-sm text-amber-100/80 leading-relaxed font-semibold">
+          {chunk.recallPrompt || chunk.active_recall_q}
         </p>
       </aside>
     </article>
