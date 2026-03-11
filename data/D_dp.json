@@ -1,0 +1,58 @@
+[
+  {
+    "id": "dp-definition",
+    "title": "Dynamic Programming — Định nghĩa & So sánh với D&C",
+    "content": "- **Dynamic Programming (DP)**: giải bài toán phức tạp bằng cách chia thành các **subproblem chồng lấp** (overlapping), giải mỗi subproblem **đúng một lần**, lưu kết quả để tra cứu sau.\n- Khác Divide-and-Conquer: D&C giải subproblem **độc lập**, DP giải subproblem **chồng lấp** và **tái sử dụng** kết quả.\n- DP là chiến lược **bottom-up**: giải bài nhỏ trước, dùng kết quả để xây bài lớn hơn.\n- **Tại sao cần DP**: Fibonacci đệ quy ngây thơ có độ phức tạp $O(2^n)$ do tính lại subproblem nhiều lần → DP giảm xuống $O(n)$.",
+    "recallPrompt": "Giải thích bằng ngôn ngữ của bạn tại sao 'overlapping subproblems' là điều kiện cần để DP có ích — dùng cây đệ quy của Fibonacci để minh họa.",
+    "blanks": ["overlapping", "bottom-up", "$O(2^n)$"]
+  },
+  {
+    "id": "dp-fibonacci",
+    "title": "DP — Fibonacci: từ $O(2^n)$ xuống $O(n)$",
+    "content": "- **Vấn đề đệ quy**: `fibonacci(6)` tạo ra cây gọi hàm với số node tăng theo cấp số nhân — $O(2^n)$ thời gian.\n- **DP bottom-up**: lưu các giá trị đã tính vào mảng, không tính lại:\n\n```cpp\nint fibonacci(int n) {\n    int f[100];\n    f[0] = 1; f[1] = 1;\n    for (int i = 2; i <= n; i++)\n        f[i] = f[i-1] + f[i-2];\n    return f[n];\n}\n```\n\n- Độ phức tạp: $O(n)$ thời gian, $O(n)$ không gian (tối ưu hơn nữa: $O(1)$ không gian dùng 2 biến).",
+    "recallPrompt": "Tối ưu hàm Fibonacci DP xuống $O(1)$ không gian — chỉ cần bao nhiêu biến và tại sao?",
+    "blanks": ["mảng", "$O(n)$", "bottom-up"]
+  },
+  {
+    "id": "dp-binomial-recursive",
+    "title": "Binomial Coefficient — Công thức & Đệ quy ngây thơ",
+    "content": "- **Định nghĩa**:\n$$\\binom{n}{k} = \\frac{n!}{k!(n-k)!} \\quad \\text{với } 0 \\leq k \\leq n$$\n- **Công thức đệ quy (Pascal's Triangle)**:\n$$\\binom{n}{k} = \\begin{cases} 1 & k=0 \\text{ hoặc } k=n \\\\ \\binom{n-1}{k-1} + \\binom{n-1}{k} & 0 < k < n \\end{cases}$$\n- **Cài đặt đệ quy ngây thơ** — rất kém hiệu quả do tính lại subproblem:\n\n```cpp\nint bin(int n, int k) {\n    if (k == 0 || k == n) return 1;\n    else return bin(n-1, k-1) + bin(n-1, k);\n}\n```",
+    "recallPrompt": "Giải thích tại sao công thức $\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$ (Pascal) dẫn đến subproblem chồng lấp — vẽ cây đệ quy cho $\\binom{4}{2}$.",
+    "blanks": ["$\\binom{n}{k}$", "Pascal", "chồng lấp"]
+  },
+  {
+    "id": "dp-binomial-dp",
+    "title": "Binomial Coefficient — Giải pháp DP",
+    "content": "- **Ý tưởng**: điền bảng $B[i][j] = \\binom{i}{j}$ từ hàng nhỏ đến lớn (bottom-up).\n- **Tính chất đệ quy**:\n$$B[i][j] = \\begin{cases} 1 & j=0 \\text{ hoặc } j=i \\\\ B[i-1][j-1] + B[i-1][j] & 0 < j < i \\end{cases}$$\n- **Cài đặt DP** — $O(nk)$ thời gian, $O(nk)$ không gian:\n\n```cpp\nint bin(int n, int k) {\n    int B[1000][100];\n    for (int i = 0; i <= n; i++) {\n        for (int j = 0; j <= i; j++) {\n            if (j == 0 || j == i) B[i][j] = 1;\n            else B[i][j] = B[i-1][j-1] + B[i-1][j];\n        }\n    }\n    return B[n][k];\n}\n```",
+    "recallPrompt": "Tối ưu không gian bộ nhớ cho DP binomial coefficient từ $O(nk)$ xuống $O(k)$ — bạn cần thay đổi gì trong cách lưu bảng $B$?",
+    "blanks": ["$B[i][j]$", "$O(nk)$", "bottom-up"]
+  },
+  {
+    "id": "dp-principle-optimality",
+    "title": "Principle of Optimality — Điều kiện áp dụng DP",
+    "content": "- **Nguyên lý tối ưu**: bài toán thỏa mãn nguyên lý này nếu *mọi nghiệm con của nghiệm tối ưu* cũng là nghiệm tối ưu cho bài toán con tương ứng.\n- **Bắt buộc kiểm tra** trước khi dùng DP cho bài toán tối ưu hóa.\n- **Phản ví dụ — Longest Path**: đường dài nhất $v_1 \\to v_4$ là $\\{v_1 \\to v_3 \\to v_2 \\to v_4\\}$, nhưng subpath $\\{v_1 \\to v_3\\}$ **không** phải đường dài nhất từ $v_1$ đến $v_3$ → **vi phạm** nguyên lý tối ưu → DP không áp dụng được.\n- **So sánh**: Shortest Path (Dijkstra) **thỏa mãn** nguyên lý tối ưu → DP áp dụng được.",
+    "recallPrompt": "Phân biệt Shortest Path (thỏa mãn nguyên lý tối ưu) và Longest Path (vi phạm) — điều gì trong cấu trúc graph làm Longest Path vi phạm?",
+    "blanks": ["Principle of Optimality", "nghiệm con", "Longest Path"]
+  },
+  {
+    "id": "dp-matrix-chain-intro",
+    "title": "Chained Matrix Multiplication — Bài toán & Chi phí",
+    "content": "- **Nhân ma trận $m \\times n$ với $n \\times p$**: tốn đúng $m \\times n \\times p$ phép nhân vô hướng.\n- **Phép nhân ma trận có tính kết hợp**: thứ tự đặt ngoặc ảnh hưởng lớn đến số phép nhân.\n- **Ví dụ** $A_{20\\times2} \\times B_{2\\times30} \\times C_{30\\times12} \\times D_{12\\times8}$:\n\n| Thứ tự | Số phép nhân |\n|---|---|\n| $A(B(CD))$ | $3680$ |\n| $(AB)(CD)$ | $8880$ |\n| $A((BC)D)$ | $\\mathbf{1232}$ ← tối ưu |\n| $((AB)C)D$ | $10320$ |\n| $(A(BC))D$ | $3120$ |\n\n- Chênh lệch giữa thứ tự tốt nhất và xấu nhất: **8.4 lần** — bài toán tìm thứ tự tối ưu là phi tầm thường.",
+    "recallPrompt": "Tại sao $A((BC)D)$ với 1232 phép nhân lại tối ưu hơn $(AB)(CD)$ với 8880 — trực giác nào giúp nhận ra thứ tự tốt mà không cần thử tất cả?",
+    "blanks": ["$m \\times n \\times p$", "kết hợp", "thứ tự đặt ngoặc"]
+  },
+  {
+    "id": "dp-matrix-chain-solution",
+    "title": "Chained Matrix Multiplication — Giải pháp DP",
+    "content": "- **Định nghĩa**: $M[i][j]$ = số phép nhân tối thiểu để nhân $A_i \\cdot A_{i+1} \\cdots A_j$.\n- **Kích thước**: $A_k$ có kích thước $d_{k-1} \\times d_k$.\n- **Công thức DP**:\n$$M[i][i] = 0$$\n$$M[i][j] = \\min_{i \\leq k \\leq j-1}\\left(M[i][k] + M[k+1][j] + d_{i-1} \\cdot d_k \\cdot d_j\\right) \\quad \\text{nếu } i < j$$\n- **Ý nghĩa**: thử mọi vị trí $k$ chia chuỗi thành hai phần, tính chi phí nhân kết quả hai phần.\n- **Độ phức tạp**: $O(n^3)$ thời gian, $O(n^2)$ không gian — so với brute-force $O(4^n/n^{3/2})$.",
+    "recallPrompt": "Giải thích số hạng $d_{i-1} \\cdot d_k \\cdot d_j$ trong công thức DP — nó đại diện cho chi phí gì cụ thể trong quá trình nhân ma trận?",
+    "blanks": ["$M[i][j]$", "$d_{i-1} \\cdot d_k \\cdot d_j$", "$O(n^3)$"]
+  },
+  {
+    "id": "dp-three-steps",
+    "title": "DP cho Bài toán Tối ưu — 3 Bước Chuẩn",
+    "content": "- Mọi bài toán tối ưu giải bằng DP đều theo **3 bước**:\n  1. **Xác lập tính chất đệ quy**: tìm công thức $OPT[i]$ hoặc $OPT[i][j]$ biểu diễn nghiệm tối ưu theo các subproblem nhỏ hơn.\n  2. **Tính giá trị tối ưu bottom-up**: điền bảng từ subproblem nhỏ đến lớn, không đệ quy.\n  3. **Xây dựng nghiệm tối ưu**: dùng bảng đã điền để truy vết lại lựa chọn nào tại mỗi bước cho kết quả tối ưu.\n- **Lưu ý**: bước 3 thường cần bảng phụ lưu *lựa chọn* (vd: vị trí $k$ tốt nhất trong chained matrix multiplication).",
+    "recallPrompt": "Trong Chained Matrix Multiplication, bước 3 (xây dựng nghiệm) cần thêm bảng gì ngoài $M[i][j]$? Làm thế nào để in ra thứ tự đặt ngoặc tối ưu?",
+    "blanks": ["tính chất đệ quy", "bottom-up", "truy vết"]
+  }
+]

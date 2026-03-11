@@ -1,0 +1,51 @@
+[
+  {
+    "id": "intro-data-structure-def",
+    "title": "Định nghĩa Data Structure",
+    "content": "- **Data structure**: cách lưu trữ và tổ chức dữ liệu nhằm hỗ trợ truy cập và chỉnh sửa hiệu quả.\n- Mỗi cấu trúc dữ liệu có ưu và nhược điểm riêng — chọn đúng cấu trúc là yếu tố then chốt.\n- Câu hỏi cốt lõi: *thuật toán nào hiệu quả nhất trên cấu trúc dữ liệu đã chọn?*",
+    "recallPrompt": "Giải thích tại sao việc chọn đúng data structure lại ảnh hưởng trực tiếp đến hiệu năng của thuật toán.",
+    "blanks": ["data structure", "truy cập", "chỉnh sửa"]
+  },
+  {
+    "id": "intro-algorithm-def",
+    "title": "Định nghĩa Algorithm",
+    "content": "- **Algorithm**: thủ tục tính toán được định nghĩa rõ ràng, nhận **input** và cho ra **output**.\n- Phải xác định rõ: với data structure đã chọn, thuật toán nào là *hiệu quả nhất*?\n- Hiệu quả đo bằng độ phức tạp thời gian $O(f(n))$ và không gian $O(g(n))$.",
+    "recallPrompt": "Phân biệt 'well-defined computational procedure' với một đoạn code thông thường — điều gì làm cho một thủ tục thực sự là một algorithm?",
+    "blanks": ["input", "output", "hiệu quả"]
+  },
+  {
+    "id": "cpp-data-type-def",
+    "title": "Định nghĩa Data Type $T = \\langle V, O \\rangle$",
+    "content": "- **Data type** $T = \\langle V, O \\rangle$ gồm:\n  - $V$: tập hợp các **giá trị** hợp lệ.\n  - $O$: tập hợp các **phép toán** (operations/methods).\n- Ví dụ `short int`:\n  - $V = \\{-32768, \\ldots, 32767\\}$\n  - $O = \\{+,\\; -,\\; *,\\; /\\}$",
+    "recallPrompt": "Dùng ký hiệu $T = \\langle V, O \\rangle$ để mô tả data type `bool` — $V$ và $O$ của nó là gì?",
+    "blanks": ["giá trị", "phép toán", "short int"]
+  },
+  {
+    "id": "cpp-primitive-types",
+    "title": "C++ Primitive Data Types & Kích thước",
+    "content": "| Type | Size (bytes) |\n|---|---|\n| `bool` | 1 |\n| `char`, `unsigned char` | 1 |\n| `short`, `unsigned short` | 2 |\n| `int`, `unsigned int` | 4 |\n| `long`, `unsigned long` | 4 |\n| `long long`, `unsigned long long` | 8 |\n| `float` | 4 |\n| `double` | 8 |\n\n- **Unsigned** types dùng toàn bộ bit cho giá trị không âm → range gấp đôi phần dương.\n- `long long` dùng khi cần giá trị vượt $2^{31}-1 \\approx 2.1 \\times 10^9$.",
+    "recallPrompt": "Tại sao `int` và `long` cùng có kích thước 4 bytes trên hầu hết hệ thống 64-bit hiện đại? Điều này ảnh hưởng gì đến tính portable của code?",
+    "blanks": ["long long", "unsigned", "double"]
+  },
+  {
+    "id": "cpp-structured-types",
+    "title": "C++ Structured Data Types",
+    "content": "- Bốn loại cấu trúc dữ liệu tích hợp trong C++:\n  - `string` — chuỗi ký tự.\n  - `struct` — nhóm các trường dữ liệu dị kiểu.\n  - `class` — `struct` mở rộng với encapsulation và methods.\n  - **array** — dãy phần tử cùng kiểu, truy cập qua index $O(1)$.\n- Khác **primitive types**: structured types lưu trữ *tập hợp* dữ liệu.",
+    "recallPrompt": "Sự khác biệt cốt lõi giữa `struct` và `class` trong C++ là gì? Khi nào bạn chọn cái này thay cái kia?",
+    "blanks": ["struct", "class", "array"]
+  },
+  {
+    "id": "adt-definition",
+    "title": "Abstract Data Type (ADT)",
+    "content": "- **ADT**: *đặc tả* (specification) tập giá trị và các phép toán trên đó — **không** quan tâm cách cài đặt.\n- **Data structure**: *cài đặt* (implementation) của một ADT trong ngôn ngữ lập trình cụ thể.\n- Quan hệ: ADT $\\to$ interface; Data Structure $\\to$ implementation.\n- Một ADT có thể có **nhiều** cài đặt khác nhau với trade-off về thời gian/không gian khác nhau.",
+    "recallPrompt": "Giải thích bằng ngôn ngữ của bạn tại sao ADT và Data Structure là hai khái niệm khác nhau — dùng ví dụ cụ thể ngoài Stack.",
+    "blanks": ["specification", "implementation", "ADT"]
+  },
+  {
+    "id": "adt-stack-example",
+    "title": "ADT Stack — LIFO",
+    "content": "- **Stack**: collection các phần tử theo chính sách **LIFO** (Last-In, First-Out).\n- API tối thiểu:\n\n```\nStack S;\nS.push(item)   // thêm item vào đỉnh — O(1)\nS.pop()        // xóa và trả về phần tử đỉnh — O(1)\nS.peek()       // xem đỉnh, không xóa — O(1)\nS.isEmpty()    // kiểm tra rỗng — O(1)\n```\n\n- Mọi thao tác cơ bản đều đạt $O(1)$ nếu cài đặt bằng array hoặc linked list.\n- Ứng dụng: call stack, undo/redo, kiểm tra dấu ngoặc cân bằng, DFS.",
+    "recallPrompt": "Giải thích tại sao `push` và `pop` của Stack đều là $O(1)$ khi dùng cả array (cuối mảng) lẫn linked list — cơ chế nào đảm bảo điều đó?",
+    "blanks": ["LIFO", "push", "pop"]
+  }
+]

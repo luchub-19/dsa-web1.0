@@ -1,0 +1,51 @@
+[
+  {
+    "id": "recursion-definition",
+    "title": "Recursion — Định nghĩa & Phân loại",
+    "content": "- **Recursion**: hàm gọi chính nó trong thân hàm.\n- Phân loại theo hướng:\n  - **Direct**: hàm gọi trực tiếp chính nó.\n  - **Indirect**: hàm A gọi hàm B, hàm B gọi lại hàm A.\n- Phân loại theo số lần gọi:\n  - **Single**: gọi chính nó đúng một lần.\n  - **Multiple**: gọi chính nó nhiều hơn một lần (vd: Fibonacci).",
+    "recallPrompt": "Phân biệt direct và indirect recursion bằng một ví dụ code C++ cụ thể cho mỗi loại.",
+    "blanks": ["direct", "indirect", "multiple"]
+  },
+  {
+    "id": "recursion-design",
+    "title": "Thiết kế Recursive Algorithm — Base Case & Recursive Case",
+    "content": "- Mọi thuật toán đệ quy phải xác định **hai thành phần**:\n  1. **Base case**: phần bài toán giải được *không cần đệ quy* — điều kiện dừng.\n  2. **Recursive case**: phần bài toán được giải bằng cách *gọi lại chính hàm* với input nhỏ hơn.\n- Thiếu base case → stack overflow (đệ quy vô tận).\n- Mỗi lần gọi đệ quy phải **tiến gần hơn** về phía base case.",
+    "recallPrompt": "Giải thích tại sao thiếu base case dẫn đến stack overflow — điều gì xảy ra trong bộ nhớ khi mỗi lần gọi đệ quy được thực thi?",
+    "blanks": ["base case", "recursive case", "stack overflow"]
+  },
+  {
+    "id": "recursion-factorial",
+    "title": "Factorial — Đệ quy đơn",
+    "content": "- Định nghĩa toán học:\n  - Base case: $factorial(0) = 1$\n  - Recursive case: $factorial(n) = factorial(n-1) \\times n$ với $n > 0$\n- Độ phức tạp: $O(n)$ thời gian, $O(n)$ không gian (call stack).\n\n```cpp\nint factorial(int n) {\n    if (n == 0)\n        return 1;\n    else\n        return n * factorial(n - 1);\n}\n```",
+    "recallPrompt": "Tại sao factorial đệ quy tốn $O(n)$ không gian dù không dùng mảng hay cấu trúc dữ liệu phụ nào?",
+    "blanks": ["factorial", "base case", "call stack"]
+  },
+  {
+    "id": "recursion-fibonacci",
+    "title": "Fibonacci — Đệ quy bội (Multiple Recursion)",
+    "content": "- Định nghĩa:\n  - $f_0 = 1,\\quad f_1 = 1$\n  - $f_n = f_{n-1} + f_{n-2}$ với $n > 1$\n- Đây là **multiple recursion** — mỗi lần gọi sinh ra **hai** lần gọi đệ quy.\n- Độ phức tạp ngây thơ: $O(2^n)$ — tính lại subproblem nhiều lần.\n- Cải thiện bằng **memoization** hoặc **dynamic programming** xuống $O(n)$.\n\n```cpp\nint fibonacci(int n) {\n    if (n <= 1)\n        return 1;\n    else\n        return fibonacci(n - 1) + fibonacci(n - 2);\n}\n```",
+    "recallPrompt": "Vẽ cây đệ quy cho `fibonacci(5)` và chỉ ra những subproblem nào bị tính lại — tại sao điều này làm độ phức tạp trở thành $O(2^n)$?",
+    "blanks": ["fibonacci", "memoization", "$O(2^n)$"]
+  },
+  {
+    "id": "recursion-hanoi",
+    "title": "Tower of Hanoi — Đệ quy & Chiến lược",
+    "content": "- **Bài toán**: di chuyển $n$ đĩa từ cọc A sang cọc C, dùng cọc B làm trung gian, không được đặt đĩa lớn lên đĩa nhỏ.\n- **Chiến lược đệ quy** (3 bước):\n  1. Di chuyển $n-1$ đĩa trên cùng từ A → B (dùng C làm trung gian).\n  2. Di chuyển đĩa lớn nhất từ A → C.\n  3. Di chuyển $n-1$ đĩa từ B → C (dùng A làm trung gian).\n- Số bước tối thiểu: $2^n - 1$, độ phức tạp $O(2^n)$.\n\n```cpp\nvoid TowerOfHanoi(int n, char A, char B, char C) {\n    if (n == 1)\n        printf(\"Di chuyen dia tren cung tu %c den %c\\n\", A, C);\n    else {\n        TowerOfHanoi(n - 1, A, C, B);\n        printf(\"Di chuyen dia tren cung tu %c den %c\\n\", A, C);\n        TowerOfHanoi(n - 1, B, A, C);\n    }\n}\n```",
+    "recallPrompt": "Giải thích tại sao số bước tối thiểu để giải Tower of Hanoi với $n$ đĩa là $2^n - 1$ — chứng minh bằng quy nạp toán học.",
+    "blanks": ["Tower of Hanoi", "$2^n - 1$", "trung gian"]
+  },
+  {
+    "id": "divide-conquer-intro",
+    "title": "Divide-and-Conquer — Chiến lược & Cấu trúc",
+    "content": "- **Ý tưởng**: chia bài toán thành các bài toán con nhỏ hơn (thường là cùng loại), giải đệ quy, rồi **gộp** kết quả.\n- Ba bước chuẩn:\n  1. **Divide**: chia instance thành $\\geq 2$ instance nhỏ hơn.\n  2. **Conquer**: giải đệ quy từng instance nhỏ.\n  3. **Combine**: gộp nghiệm các instance nhỏ thành nghiệm của bài toán lớn.\n- Có thể triển khai theo hướng **top-down** (đệ quy) hoặc **bottom-up** (iterative).\n- Hiệu quả khi subproblem **không overlap** (khác với Dynamic Programming).",
+    "recallPrompt": "Phân biệt Divide-and-Conquer với Dynamic Programming — khi nào nên dùng cái nào và tại sao Fibonacci không phải ví dụ tốt cho D&C thuần?",
+    "blanks": ["Divide", "Conquer", "Combine"]
+  },
+  {
+    "id": "divide-conquer-binary-search",
+    "title": "Binary Search — D&C trên mảng đã sắp xếp",
+    "content": "- **Input**: mảng $a$ đã sắp xếp tăng dần, key $x$ cần tìm.\n- **Chiến lược D&C**:\n  - So sánh $x$ với phần tử giữa $a[m]$, $m = \\lfloor(l+r)/2\\rfloor$.\n  - Nếu $x = a[m]$: tìm thấy.\n  - Nếu $x < a[m]$: tìm tiếp ở nửa **trái**.\n  - Nếu $x > a[m]$: tìm tiếp ở nửa **phải**.\n- Độ phức tạp: $O(\\log n)$ thời gian, $O(\\log n)$ không gian (đệ quy) hoặc $O(1)$ (iterative).\n\n```cpp\nint binarySearch(int a[], int l, int r, int x) {\n    int m = (l + r) / 2;\n    if (l > r) return -1;\n    if (a[m] == x) return m;\n    if (a[m] > x) return binarySearch(a, l, m - 1, x);\n    if (a[m] < x) return binarySearch(a, m + 1, r, x);\n}\n```",
+    "recallPrompt": "Giải thích tại sao Binary Search đạt $O(\\log n)$ — chứng minh bằng cách đếm số lần chia đôi tối đa trước khi mảng còn 1 phần tử.",
+    "blanks": ["Binary Search", "$O(\\log n)$", "phần tử giữa"]
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "analysis-definition",
+    "title": "Phân tích Thuật toán — Định nghĩa & Mục đích",
+    "content": "- **Phân tích thuật toán**: dự đoán **tài nguyên** mà thuật toán cần.\n- Hai loại độ phức tạp chính:\n  - **Time Complexity**: số phép toán cơ bản thực hiện (không phải giây thực tế).\n  - **Space Complexity**: bộ nhớ phụ ngoài dữ liệu đầu vào.\n- **Tại sao cần phân tích**:\n  - *So sánh* thuật toán để chọn cái hiệu quả nhất.\n  - *Dự đoán* hành vi khi kích thước input thay đổi.\n  - *Tối ưu hoá* và quản lý tài nguyên CPU/RAM.\n- **Hai phương pháp**: thực nghiệm (empirical) và lý thuyết (theoretical).",
+    "recallPrompt": "Tại sao time complexity đo số phép toán cơ bản thay vì thời gian thực tế tính bằng giây — điều gì khiến cách đo đó không đáng tin cậy?",
+    "blanks": ["Time Complexity", "Space Complexity", "phép toán cơ bản"]
+  },
+  {
+    "id": "max-subarray-algorithms",
+    "title": "Maximum Subarray Sum — Ba Thuật toán So sánh",
+    "content": "- **Bài toán**: tìm tổng lớn nhất của dãy con liên tiếp trong mảng $n$ phần tử (tổng tối thiểu = 0).\n- **Algorithm 1** — vét cạn 3 vòng lặp: $O(n^3)$\n```cpp\nfor (int a = 0; a < n; a++)\n    for (int b = a; b < n; b++) {\n        int sum = 0;\n        for (int k = a; k <= b; k++) sum += array[k];\n        best = max(best, sum);\n    }\n```\n- **Algorithm 2** — tích lũy tổng khi mở rộng b: $O(n^2)$\n```cpp\nfor (int a = 0; a < n; a++) {\n    int sum = 0;\n    for (int b = a; b < n; b++) {\n        sum += array[b]; best = max(best, sum);\n    }\n}\n```\n- **Algorithm 3** — Kadane's Algorithm: $O(n)$\n```cpp\nint best = 0, sum = 0;\nfor (int k = 0; k < n; k++) {\n    sum = max(array[k], sum + array[k]);\n    best = max(best, sum);\n}\n```",
+    "recallPrompt": "Giải thích trực giác của Kadane's Algorithm — tại sao `sum = max(array[k], sum + array[k])` lại đúng và tại sao nó đạt $O(n)$?",
+    "blanks": ["$O(n^3)$", "$O(n^2)$", "$O(n)$"]
+  },
+  {
+    "id": "problem-types",
+    "title": "Phân loại Bài toán — Decision, Search, Optimization",
+    "content": "- **Decision Problem**: trả lời có/không (vd: số này có phải số nguyên tố không?).\n- **Search Problem**: tìm một nghiệm trong tập nghiệm (vd: tìm đường đi).\n- **Counting Problem**: đếm tổng số nghiệm (vd: bao nhiêu số nguyên tố trong 100 số đầu?).\n- **Optimization Problem**: tìm nghiệm *tốt nhất* (vd: đường đi ngắn nhất).\n- **Tractable**: giải được trong thời gian đa thức $O(n^k)$.\n- **Intractable**: thời gian tăng quá nhanh — vd: Travelling Salesman Problem.\n- **Heuristic**: cho nghiệm *chấp nhận được* (không tối ưu) trong thời gian đa thức.",
+    "recallPrompt": "Phân biệt Search Problem và Optimization Problem — tại sao mọi Optimization Problem đều có thể chuyển thành dạng Decision Problem?",
+    "blanks": ["Decision Problem", "Optimization Problem", "Heuristic"]
+  },
+  {
+    "id": "complexity-classes",
+    "title": "Complexity Classes — P, NP, NP-complete, NP-hard",
+    "content": "- **P**: các bài toán quyết định giải được trong thời gian đa thức trên máy tất định.\n- **NP**: các bài toán quyết định có thể *xác minh* nghiệm dương trong thời gian đa thức.\n- **NP-complete**: thuộc NP và mọi bài trong NP đều *reducible* về nó trong đa thức thời gian.\n- **NP-hard**: thỏa tính reducible nhưng không nhất thiết thuộc NP.\n- **Câu hỏi mở**: $P \\stackrel{?}{=} NP$ — chưa có lời giải.\n- Một số bài NP-complete: Boolean SAT, Subset Sum, Traveling Salesman, Clique, n-Queens Completion.\n- **Halting Problem**: bài toán *không thể giải* — không tồn tại thuật toán nào xác định chương trình có dừng hay không.",
+    "recallPrompt": "Giải thích tại sao nếu tìm được thuật toán đa thức cho bất kỳ bài NP-complete nào thì $P = NP$ — cơ chế reduction hoạt động như thế nào?",
+    "blanks": ["NP-complete", "reducible", "$P \\stackrel{?}{=} NP$"]
+  },
+  {
+    "id": "big-o-notation",
+    "title": "Big O — Định nghĩa Chính thức & Ý nghĩa",
+    "content": "- **Định nghĩa**: $O(g(n)) = \\{f(n) : \\exists\\, c, n_0 > 0 \\text{ s.t. } 0 \\leq f(n) \\leq c \\cdot g(n),\\ \\forall n \\geq n_0\\}$\n- Biểu diễn **cận trên** (upper bound) của tốc độ tăng trưởng.\n- **Quy tắc thực hành**: giữ lại hạng tử bậc cao nhất, bỏ hằng số:\n  - $2n^4 + 3n^3 + 5n^2 + 2n + 3 = O(n^4)$\n  - $5n^2 + 3n\\log n + 2n + 5 = O(n^2)$\n  - $2^{n+2} = O(2^n)$\n- **Định lý**: nếu $T(n) = a_0 + a_1 n + \\cdots + a_d n^d$ với $a_d > 0$ thì $T(n) = O(n^d)$.\n- Thứ tự tăng: $1 < \\log n < n < n\\log n < n^2 < n^3 < 2^n < n!$",
+    "recallPrompt": "Chứng minh từ định nghĩa rằng $2n^4 + 3n^3 = O(n^4)$ — tìm hằng số $c$ và $n_0$ cụ thể.",
+    "blanks": ["cận trên", "$O(n^d)$", "$1 < \\log n < n < n\\log n < n^2$"]
+  },
+  {
+    "id": "big-omega-theta",
+    "title": "Big Ω và Big Θ — Cận dưới & Cận chặt",
+    "content": "- **Big Omega** $\\Omega$: **cận dưới** — $f(n) \\geq c \\cdot g(n)$ với mọi $n \\geq n_0$.\n$$\\Omega(g(n)) = \\{f(n) : \\exists\\, c, n_0 > 0 \\text{ s.t. } f(n) \\geq c \\cdot g(n),\\ \\forall n \\geq n_0\\}$$\n- **Big Theta** $\\Theta$: **cận chặt** — $f$ tăng đúng bằng tốc độ $g$:\n$$\\Theta(g(n)) = \\{f(n) : \\exists\\, c_1, c_2, n_0 > 0 \\text{ s.t. } c_1 g(n) \\leq f(n) \\leq c_2 g(n),\\ \\forall n \\geq n_0\\}$$\n- **Quan hệ**: $f(n) = \\Theta(g(n)) \\iff f(n) = O(g(n))$ và $f(n) = \\Omega(g(n))$.\n- Trong phân tích worst-case: $O$ mô tả kịch bản xấu nhất, $\\Omega$ mô tả kịch bản tốt nhất, $\\Theta$ khi cả hai khớp nhau.",
+    "recallPrompt": "Tại sao $\\Theta$ được coi là mô tả chính xác nhất về độ phức tạp — cho ví dụ một thuật toán mà $O$ và $\\Omega$ cho kết quả khác nhau?",
+    "blanks": ["$\\Omega$", "$\\Theta$", "cận chặt"]
+  },
+  {
+    "id": "analysis-simple-statements",
+    "title": "Phân tích Độ phức tạp — Sequential, Branch, Loop",
+    "content": "- **Sequential** ($P_1; P_2$): $T(n) = T_1(n) + T_2(n)$ — lấy tổng.\n- **Branch** (if-else): $T(n) = \\max(T_1(n), T_2(n))$ — lấy nhánh xấu hơn.\n- **Loop**: $T(n) = \\sum_i T_i(n)$ — tổng chi phí mỗi lần lặp.\n- **Ví dụ Linear Search**: $O(n)$ worst case.\n- **Ví dụ Bubble Sort** — hai vòng lặp lồng nhau:\n```cpp\nfor (int i = 0; i <= n-2; i++)\n    for (int j = n-1; j >= i+1; j--)\n        if (a[j] < a[j-1]) swap(a[j], a[j-1]);\n```\n  Số phép so sánh: $\\sum_{i=0}^{n-2}(n-1-i) = \\frac{n(n-1)}{2} = O(n^2)$.",
+    "recallPrompt": "Tính complexity của vòng lặp `for(i=0;i<n;i++) for(j=i+1;j<n;j++)` — có bao nhiêu lần thực thi body? Dùng tổng số học để chứng minh.",
+    "blanks": ["Sequential", "$\\max(T_1, T_2)$", "$O(n^2)$"]
+  },
+  {
+    "id": "recurrence-analysis",
+    "title": "Phân tích Hàm Đệ quy — Recurrence Relation",
+    "content": "- **3 bước phân tích đệ quy**:\n  1. Xác định *Recurrence Relation* (base case + recursive case).\n  2. Viết công thức $T(n)$.\n  3. Giải bằng substitution, recursion tree hoặc Master Theorem.\n- **Factorial**: $T(n) = T(n-1) + C \\Rightarrow O(n)$\n- **Merge Sort**:\n```cpp\nvoid mergeSort(int a[], int left, int right) {\n    if (left < right) {\n        int mid = (left + right) / 2;\n        mergeSort(a, left, mid);\n        mergeSort(a, mid+1, right);\n        merge(a, left, mid, right);\n    }\n}\n```\n  $T(n) = 2T(n/2) + Cn \\Rightarrow O(n\\log n)$\n- **Tower of Hanoi**: $T(n) = 2T(n-1) + 1 \\Rightarrow O(2^n)$",
+    "recallPrompt": "Giải phương trình truy hồi $T(n) = T(n-1) + C$ bằng phương pháp khai triển (unrolling) — chứng minh kết quả là $O(n)$.",
+    "blanks": ["Recurrence Relation", "$T(n) = 2T(n/2) + Cn$", "$O(n\\log n)$"]
+  },
+  {
+    "id": "master-theorem",
+    "title": "Master Theorem — Giải Recurrence D&C",
+    "content": "- **Dạng áp dụng**: $T(n) = a \\cdot T(n/b) + f(n)$ với $a \\geq 1$, $b > 1$.\n  - $a$: số subproblem; $n/b$: kích thước mỗi subproblem; $f(n)$: chi phí chia + gộp.\n- **Ba trường hợp** (so sánh $f(n)$ với $n^{\\log_b a}$):\n  - **Case 1**: $f(n) = O(n^{\\log_b a - \\varepsilon}) \\Rightarrow T(n) = \\Theta(n^{\\log_b a})$ — đệ quy chiếm ưu thế.\n  - **Case 2**: $f(n) = \\Theta(n^{\\log_b a}) \\Rightarrow T(n) = \\Theta(n^{\\log_b a} \\log n)$ — cân bằng.\n  - **Case 3**: $f(n) = \\Omega(n^{\\log_b a + \\varepsilon}) \\Rightarrow T(n) = \\Theta(f(n))$ — f(n) chiếm ưu thế.\n- **Ví dụ**:\n  - $T(n) = 4T(n/2) + n \\Rightarrow O(n^2)$ (Case 1, $\\log_2 4 = 2$)\n  - $T(n) = 4T(n/2) + n^2 \\Rightarrow O(n^2\\log n)$ (Case 2)\n  - $T(n) = 4T(n/2) + n^3 \\Rightarrow O(n^3)$ (Case 3)\n  - $T(n) = 2T(n/2) + n\\log n \\Rightarrow O(n\\log^2 n)$",
+    "recallPrompt": "Áp dụng Master Theorem cho Merge Sort $T(n) = 2T(n/2) + n$ — xác định $a$, $b$, $f(n)$, tính $n^{\\log_b a}$ và kết luận case nào áp dụng.",
+    "blanks": ["$n^{\\log_b a}$", "Case 2", "$\\Theta(n^{\\log_b a} \\log n)$"]
+  },
+  {
+    "id": "summation-formulas",
+    "title": "Công thức Tổng — Arithmetic, Geometric, Harmonic",
+    "content": "- **Chuỗi số học**: $\\displaystyle\\sum_{k=1}^{n} k = \\frac{1}{2}(n^2 + n) = O(n^2)$\n- **Tổng bình phương**: $\\displaystyle\\sum_{k=1}^{n} k^2 = \\frac{1}{6}(2n^3 + 3n^2 + n) = O(n^3)$\n- **Tổng lập phương**: $\\displaystyle\\sum_{k=1}^{n} k^3 = \\frac{1}{4}(n^4 + 2n^3 + n^2) = O(n^4)$\n- **Chuỗi hình học**: $\\displaystyle\\sum_{k=0}^{n} r^k = \\frac{1 - r^{n+1}}{1 - r}$\n- **Chuỗi harmonic**: $\\displaystyle 1 + \\frac{1}{2} + \\cdots + \\frac{1}{n} \\approx \\ln n = O(\\log n)$",
+    "recallPrompt": "Dùng công thức $\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}$ để chứng minh Bubble Sort có đúng $\\frac{n(n-1)}{2}$ phép so sánh — tại sao kết quả là $O(n^2)$?",
+    "blanks": ["$\\frac{1}{2}(n^2 + n)$", "hình học", "$\\ln n$"]
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "tree-definition-terminology",
+    "title": "Tree — Định nghĩa & Thuật ngữ Cốt lõi",
+    "content": "- **Tree** (cây có gốc): rỗng $T=\\emptyset$, hoặc một node gốc $r$ kết nối đến dãy các cây con $\\{T_1, T_2, \\ldots, T_m\\}$ rời nhau.\n- **Thuật ngữ quan trọng**:\n  - **Root**: node không có parent.\n  - **Leaf/External node**: node không có children.\n  - **Internal node**: node có ít nhất 1 child.\n  - **Degree** của node $p$: số con của $p$. Degree của cây: $\\deg(T) = \\max(\\deg(p_i))$.\n- **Level** của node: $level(root) = 0$; $level(p) = level(parent(p)) + 1$.\n- **Height**: $height(T) = \\max(height(leftSubtree), height(rightSubtree)) + 1$.\n- **Path**: dãy node phân biệt kề nhau nối bằng edge. Ancestor → Descendant.",
+    "recallPrompt": "Phân biệt degree của node và degree của tree — cho ví dụ cây cụ thể và tính cả hai.",
+    "blanks": ["root", "leaf", "degree"]
+  },
+  {
+    "id": "tree-path-length",
+    "title": "Tree — Path Length: Internal & External",
+    "content": "- **Path length** của cây: tổng level của **tất cả** các node.\n- **Internal path length**: tổng level của các **internal nodes** (có children).\n- **External path length**: tổng level của các **leaf nodes** (không có children).\n- **Ứng dụng**: internal path length liên quan đến số phép so sánh trung bình trong tìm kiếm BST.\n- **M-ary tree**: mỗi node có đúng $M$ cây con:\n  - $M=1$: linked list.\n  - $M=2$: **binary tree**.\n  - $M=3$: ternary tree.\n- **Parental tree**: mỗi node chỉ lưu tham chiếu đến **parent** — dùng trong Prim, Dijkstra, AI tree search.",
+    "recallPrompt": "Tính internal path length và external path length cho cây có cấu trúc: root → {A, B}; A → {C, D}; B là leaf; C, D là leaf.",
+    "blanks": ["internal path length", "external path length", "M-ary"]
+  },
+  {
+    "id": "binarytree-definition-types",
+    "title": "Binary Tree — Định nghĩa & Ba Loại Đặc biệt",
+    "content": "- **Binary tree**: mỗi node có tối đa **2 con** (left child và right child).\n- Biểu diễn bằng struct:\n```cpp\nstruct Node {\n    Item item;\n    Node *left, *right;\n};\ntypedef Node *link;\n```\n- **Full binary tree**: mọi internal node đều có **đúng 2 con**.\n- **Complete binary tree**: level $0$ đến $h-1$ đầy đủ; level $h$ điền từ **trái sang phải**.\n- **Perfect binary tree**: mọi internal node có 2 con và mọi leaf ở **cùng level** $h$.\n- **Số node tối đa** tại level $l$: $2^l$. Tổng nodes trong perfect BT height $h$: $2^h - 1$.",
+    "recallPrompt": "Phân biệt full, complete, và perfect binary tree bằng ví dụ hình vẽ — loại nào là tập con của loại nào?",
+    "blanks": ["full binary tree", "complete binary tree", "perfect binary tree"]
+  },
+  {
+    "id": "binarytree-properties",
+    "title": "Binary Tree — Các Tính chất Toán học",
+    "content": "- Cây nhị phân $T$ với $N$ nodes, height $h$:\n  - Số nodes tại level $l$: tối thiểu $1$, tối đa $2^l$.\n  - Tổng nodes: tối thiểu $h$, tối đa $2^h - 1$.\n  - Số leaf nodes: tối thiểu $1$, tối đa $2^{h-1}$.\n  - Height: tối thiểu $\\lceil\\log_2(N+1)\\rceil$, tối đa $N$.\n- **Quan trọng**: cây nhị phân $N$ nodes có $N+1$ **null links** và $N-1$ **non-null links**.\n- Công thức đệ quy:\n$$size(T) = size(T_{left}) + size(T_{right}) + 1$$\n$$height(T) = \\max(height(T_{left}), height(T_{right})) + 1$$",
+    "recallPrompt": "Chứng minh rằng một binary tree với $N$ nodes luôn có $N+1$ null links — dùng induction hoặc đếm trực tiếp.",
+    "blanks": ["$N+1$ null links", "$\\lceil\\log_2(N+1)\\rceil$", "$2^h - 1$"]
+  },
+  {
+    "id": "binarytree-traversal",
+    "title": "Binary Tree Traversal — Preorder, Inorder, Postorder",
+    "content": "- **3 thứ tự duyệt** — tất cả $O(n)$ thời gian:\n- **Preorder** (Root → Left → Right):\n```cpp\nvoid preorder(link root) {\n    if (root != nullptr) {\n        visit(root);\n        preorder(root->left);\n        preorder(root->right);\n    }\n}\n```\n- **Inorder** (Left → Root → Right) → cho BST: duyệt theo **thứ tự tăng dần**:\n```cpp\nvoid inorder(link root) {\n    if (root != nullptr) {\n        inorder(root->left);\n        visit(root);\n        inorder(root->right);\n    }\n}\n```\n- **Postorder** (Left → Right → Root) — dùng tính toán biểu thức, xóa cây:\n```cpp\nvoid postorder(link root) {\n    if (root != nullptr) {\n        postorder(root->left);\n        postorder(root->right);\n        visit(root);\n    }\n}\n```",
+    "recallPrompt": "Cho BST chứa keys {4,2,6,1,3,5,7}, liệt kê thứ tự duyệt của Preorder, Inorder, Postorder — tại sao Inorder cho dãy tăng dần?",
+    "blanks": ["Preorder", "Inorder", "Postorder"]
+  },
+  {
+    "id": "bst-definition-property",
+    "title": "Binary Search Tree (BST) — Định nghĩa & Tính chất",
+    "content": "- **BST**: binary tree mà tại mỗi node $p$:\n$$\\forall q \\in LeftSubtree(p): q.key < p.key$$\n$$\\forall q \\in RightSubtree(p): q.key > p.key$$\n- **Ưu điểm**: kết hợp search nhanh như array ($O(\\log n)$ average) và insert/delete linh hoạt như linked list.\n- Node lưu thêm metadata:\n```cpp\nstruct Node {\n    Key key; Value value;\n    int N;     // subtree size\n    int h;     // subtree height\n    Node *left, *right;\n};\n```\n- **Inorder traversal BST** → dãy keys tăng dần — đây là ordered iteration $O(n)$.",
+    "recallPrompt": "Giải thích tại sao BST kết hợp được ưu điểm của cả array (search nhanh) lẫn linked list (insert nhanh) — và trường hợp nào BST mất đi ưu điểm đó?",
+    "blanks": ["$q.key < p.key$", "subtree size", "Inorder traversal"]
+  },
+  {
+    "id": "bst-search-insert",
+    "title": "BST — Search & Insert (Đệ quy)",
+    "content": "- **Search** (tìm kiếm): so sánh key với root → đi trái nếu nhỏ hơn, đi phải nếu lớn hơn, hit nếu bằng:\n```\nsearch(x, key):\n    if x == null: return miss\n    if key == x.key: return x.value\n    if key < x.key: return search(x.left, key)\n    if key > x.key: return search(x.right, key)\n```\n- **Insert** (thêm): tìm vị trí null phù hợp rồi tạo node mới:\n```\ninsert(x, key, value):\n    if x == null: return new Node(key, value)\n    if key < x.key: x.left = insert(x.left, key, value)\n    if key > x.key: x.right = insert(x.right, key, value)\n    update x.N and x.h\n    return x\n```\n- **Tree shape** phụ thuộc thứ tự insert. Với $N$ keys ngẫu nhiên: trung bình $\\sim 2\\ln N$ phép so sánh.",
+    "recallPrompt": "Xây dựng BST bằng cách insert lần lượt {5, 3, 7, 1, 4} — vẽ cây và tính depth của mỗi node. Nếu insert theo thứ tự {1,2,3,4,5} thì sao?",
+    "blanks": ["$\\sim 2\\ln N$", "search", "insert"]
+  },
+  {
+    "id": "bst-floor-ceiling-rank",
+    "title": "BST — Floor, Ceiling, Rank & Select",
+    "content": "- **Floor(k)**: key lớn nhất ≤ $k$:\n  - $k$ = root.key → floor = root.\n  - $k$ < root.key → floor nằm ở **left subtree**.\n  - $k$ > root.key → floor nằm ở right subtree **nếu có key ≤ k**, ngược lại là root.\n- **Ceiling(k)**: key nhỏ nhất ≥ $k$ — đối xứng với Floor.\n- **Rank(k)**: số keys < $k$ = $size(left) + $ (1 nếu root.key < k).\n- **Select(k)**: key có rank $k$ = index trong inorder traversal:\n  - Nếu $k = size(left)$: root là kết quả.\n  - Nếu $k < size(left)$: tìm trong left subtree.\n  - Nếu $k > size(left)$: tìm trong right subtree với rank $k - size(left) - 1$.\n- Tất cả đều $O(h)$.",
+    "recallPrompt": "Tính floor(4) và ceiling(4) trong BST chứa {1,3,5,7,9} — trace từng bước quyết định đi trái hay phải.",
+    "blanks": ["floor", "ceiling", "rank"]
+  },
+  {
+    "id": "bst-delete-hibbard",
+    "title": "BST — Delete: 3 Cases & Hibbard Deletion",
+    "content": "- **Xóa node** có key $k$ (tìm node $t$ chứa $k$) — 3 trường hợp:\n  - **Case 1 (0 children)**: xóa $t$, set parent link = null.\n  - **Case 2 (1 child)**: thay $t$ bằng child duy nhất của nó.\n  - **Case 3 (2 children)** — **Hibbard deletion**:\n    1. Tìm successor $x$ của $t$ (node nhỏ nhất trong right subtree của $t$).\n    2. Xóa $x$ khỏi right subtree của $t$.\n    3. Đặt $x$ vào vị trí của $t$.\n- **Vấn đề**: Hibbard deletion **không đối xứng** → sau nhiều delete ngẫu nhiên, cây mất cân bằng → $O(\\sqrt{N})$ per op thay vì $O(\\log N)$.\n- **Lazy deletion**: set value = null, giữ key trong cây để hướng dẫn search.",
+    "recallPrompt": "Giải thích tại sao Hibbard deletion dùng successor (min của right subtree) thay vì predecessor — điều gì đảm bảo cây vẫn là BST hợp lệ sau khi xóa?",
+    "blanks": ["Hibbard deletion", "successor", "lazy deletion"]
+  },
+  {
+    "id": "bst-performance-summary",
+    "title": "BST vs Các Cài đặt Symbol Table — So sánh Hiệu năng",
+    "content": "- Tổng hợp độ phức tạp các cài đặt Symbol Table:\n\n| Implementation | Search (worst) | Insert (worst) | Remove (worst) | Search avg | Ordered? |\n|---|---|---|---|---|---|\n| Unordered list | $O(N)$ | $O(1)$ | $O(N)$ | $N/2$ | ✗ |\n| Ordered array | $O(\\log N)$ | $O(N)$ | $O(N)$ | $\\log N$ | ✓ |\n| **BST** | $O(N)$ | $O(N)$ | $O(\\sqrt{N})$ | $1.39\\log N$ | ✓ |\n\n- BST worst case $O(N)$: khi insert theo thứ tự tăng → cây suy biến thành **linked list**.\n- BST trung bình $\\sim 1.39\\log_2 N$ ($c = 1.39$) với random input — chấp nhận được trong thực tế.\n- **Vấn đề còn lại**: cần balanced BST để đảm bảo $O(\\log N)$ trong mọi trường hợp.",
+    "recallPrompt": "Tại sao BST worst case là $O(N)$ thay vì $O(\\log N)$ — trường hợp nào dẫn đến điều này và cấu trúc nào tiếp theo giải quyết vấn đề này?",
+    "blanks": ["$1.39\\log_2 N$", "linked list", "balanced BST"]
+  }
+]

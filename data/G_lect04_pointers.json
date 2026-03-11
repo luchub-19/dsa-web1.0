@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ptr-definition-usage",
+    "title": "Pointer — Định nghĩa & Công dụng",
+    "content": "- **Pointer**: biến lưu trữ **địa chỉ bộ nhớ** của một biến khác (không phải giá trị trực tiếp).\n- Mỗi biến có **địa chỉ** (vị trí trong RAM) và **kích thước** (số bytes chiếm).\n- Lấy kích thước: `sizeof(type)`. Lấy địa chỉ: toán tử `&`.\n- **Null pointer**: không trỏ vào đâu cả.\n- **Công dụng**:\n  - Code nhanh, hiệu quả.\n  - Cấp phát bộ nhớ động.\n  - Truyền tham số bằng tham chiếu.\n  - Truy cập mảng linh hoạt.",
+    "recallPrompt": "Giải thích sự khác biệt giữa giá trị của một biến và địa chỉ của nó — điều gì xảy ra trong RAM khi bạn khai báo `int x = 5`?",
+    "blanks": ["địa chỉ bộ nhớ", "sizeof", "null pointer"]
+  },
+  {
+    "id": "ptr-declaration-syntax",
+    "title": "Khai báo Pointer & typedef",
+    "content": "- **Cú pháp khai báo**: `<Pointed Type> * <Pointer Variable Name>;`\n- **Pointer to void**: con trỏ đa năng, trỏ được đến mọi kiểu dữ liệu:\n```cpp\nvoid *pv;\n```\n- **Dùng typedef** để đặt tên kiểu pointer:\n```cpp\ntypedef int* IntPointer;\nint *p1;        // con trỏ đến int\nIntPointer p2;  // tương đương p1\n```\n- **Multilevel pointer**: pointer trỏ đến pointer khác:\n```cpp\nint num = 100;\nint *p1 = &num;\nint **p2 = &p1;\nint ***p3 = &p2;\n```",
+    "recallPrompt": "Giải thích `int **p2` — nó khác `int *p1` ở điểm nào, và khi nào cần dùng con trỏ nhiều cấp?",
+    "blanks": ["void *", "typedef", "multilevel pointer"]
+  },
+  {
+    "id": "ptr-operators",
+    "title": "Toán tử Pointer — Dereference & Arithmetic",
+    "content": "- **Dereference `*`**: truy cập giá trị tại địa chỉ pointer trỏ tới.\n- **Point-to `→`**: truy cập field của struct qua pointer (tương đương `(*p).field`).\n- **Pointer arithmetic**: cộng/trừ pointer theo đơn vị kích thước kiểu:\n```cpp\nint vector[] = {28, 41, 7};\nint *pi = vector;  // pi trỏ đến vector[0]\npi += 1;           // pi nhảy thêm sizeof(int) = 4 bytes\n// *pi bây giờ là 41\n```\n- **Trừ hai pointer**: kết quả là số phần tử giữa chúng (kiểu `ptrdiff_t`):\n```cpp\nint *p0 = vector, *p2 = vector + 2;\nprintf(\"%d\", p2 - p0); // in ra 2\n```\n- **So sánh pointer**: `==`, `!=`, `<`, `>` hợp lệ cho pointer cùng mảng.",
+    "recallPrompt": "Nếu `pi` trỏ đến `int` tại địa chỉ 100, sau `pi += 1` địa chỉ là bao nhiêu — tại sao không phải 101?",
+    "blanks": ["dereference", "pointer arithmetic", "$\\text{sizeof}(\\text{type})$"]
+  },
+  {
+    "id": "ptr-const-variants",
+    "title": "const & Pointer — 4 Biến thể",
+    "content": "- **4 tổ hợp** của `const` với pointer:\n\n| Kiểu | Pointer thay đổi được? | Data thay đổi được? |\n|---|:---:|:---:|\n| `int *p` | ✓ | ✓ |\n| `const int *p` | ✓ | ✗ |\n| `int *const p` | ✗ | ✓ |\n| `const int *const p` | ✗ | ✗ |\n\n```cpp\nconst int limit = 500;\nconst int *pci = &limit;      // pointer to constant\nint *const cpi = &num;        // constant pointer\nconst int *const cpci = &limit; // constant pointer to constant\n```\n- **Quy tắc đọc**: đọc từ phải sang trái — `const` gần `*` nhất áp dụng cho pointer, còn lại áp dụng cho data.",
+    "recallPrompt": "Giải thích tại sao `const int *p` cho phép `p = &other` nhưng không cho phép `*p = 5` — `const` bảo vệ cái gì trong từng trường hợp?",
+    "blanks": ["const int *", "int *const", "const int *const"]
+  },
+  {
+    "id": "ptr-arrays-1d",
+    "title": "Pointer & Mảng 1 Chiều — Duyệt & Pointer to Array",
+    "content": "- Tên mảng **là pointer** đến phần tử đầu tiên: `array ≡ &array[0]`.\n- **Kỹ thuật duyệt mảng** bằng pointer:\n```cpp\nT *range_begin = array;\nT *range_end   = array + n;\nfor (T *p = range_begin; p < range_end; p++) {\n    // xử lý *p\n}\n```\n- **Pointer trỏ đến toàn mảng** (khác pointer trỏ đến phần tử):\n```cpp\nint (*p1)[10];     // pointer đến mảng 10 int\ndouble (*p2)[50];  // pointer đến mảng 50 double\n```\n- Dấu ngoặc `(*p1)` bắt buộc — không có nó `int *p1[10]` là mảng 10 pointer.",
+    "recallPrompt": "Phân biệt `int *p` và `int (*p)[10]` — chúng khác nhau ở kiểu dữ liệu như thế nào và phép cộng pointer cho kết quả khác nhau ra sao?",
+    "blanks": ["range_begin", "range_end", "int (*p)[10]"]
+  },
+  {
+    "id": "ptr-arrays-2d",
+    "title": "Mảng 2 Chiều — Row-major & Column-major",
+    "content": "- **Row-major** (C/C++ mặc định): các phần tử cùng hàng nằm liền nhau trong bộ nhớ.\n$$\\text{offset}(row, col) = row \\times N_{col} + col$$\n- **Column-major** (Fortran, MATLAB): các phần tử cùng cột nằm liền nhau.\n$$\\text{offset}(row, col) = col \\times N_{row} + row$$\n- **Ví dụ** mảng `int A[2][3]`:\n  - `A[0]` = {1,2,3}, `A[1]` = {4,5,6}\n  - Trong bộ nhớ: `1, 2, 3, 4, 5, 6` (row-major)\n- **Quan trọng**: `A[i][j]` ≡ `*(*(A+i)+j)` — hai lần dereference.",
+    "recallPrompt": "Tính địa chỉ của `A[1][2]` trong mảng `int A[3][4]` với row-major — nếu `A` bắt đầu tại địa chỉ 200 và `sizeof(int) = 4`?",
+    "blanks": ["row-major", "$row \\times N_{col} + col$", "column-major"]
+  },
+  {
+    "id": "ptr-functions-passbyvalue-vs-pointer",
+    "title": "Pointer & Hàm — Pass by Value vs Pass by Pointer",
+    "content": "- **Pass by value**: hàm nhận **bản sao** — thay đổi không ảnh hưởng biến gốc:\n```cpp\nvoid swap(int num1, int num2) {\n    int tmp = num1; num1 = num2; num2 = tmp; // vô hiệu!\n}\n```\n- **Pass by pointer**: hàm nhận địa chỉ — thay đổi qua `*` ảnh hưởng biến gốc:\n```cpp\nvoid swapWithPointers(int *pnum1, int *pnum2) {\n    int tmp = *pnum1; *pnum1 = *pnum2; *pnum2 = tmp;\n}\nswapWithPointers(&n1, &n2); // gọi với &\n```\n- **Pass pointer to constant**: bảo vệ data, cho phép đọc không cho ghi:\n```cpp\nvoid f(const int *num1, int *num2) { *num2 = *num1; }\n```",
+    "recallPrompt": "Giải thích tại sao hàm `swap(int a, int b)` không hoạt động — vẽ sơ đồ stack frame để minh họa sự khác nhau giữa pass by value và pass by pointer.",
+    "blanks": ["pass by value", "pass by pointer", "const int *"]
+  },
+  {
+    "id": "ptr-functions-return-dangers",
+    "title": "Trả về Pointer — 4 Nguy hiểm Cần tránh",
+    "content": "- Hàm có thể trả về pointer để trả về dữ liệu được cấp phát động:\n```cpp\nint* allocateArray(int size, int value) {\n    int *arr = new int[size];\n    for (int i = 0; i < size; i++) arr[i] = value;\n    return arr;\n}\n```\n- **4 lỗi nguy hiểm** khi trả về pointer:\n  1. **Uninitialized pointer**: trả về pointer chưa khởi tạo → undefined behavior.\n  2. **Invalid address**: trả về địa chỉ không hợp lệ.\n  3. **Local variable pointer**: trả về `&localVar` → dangling pointer (biến bị hủy khi hàm kết thúc).\n  4. **Memory leak**: trả về pointer heap nhưng caller quên `delete[]`.",
+    "recallPrompt": "Tại sao trả về địa chỉ của biến cục bộ là lỗi nghiêm trọng — điều gì xảy ra với stack frame khi hàm kết thúc và địa chỉ đó còn được dùng?",
+    "blanks": ["dangling pointer", "memory leak", "local variable"]
+  },
+  {
+    "id": "ptr-function-pointers",
+    "title": "Function Pointer — Khai báo & Sử dụng",
+    "content": "- **Function pointer**: lưu địa chỉ của một hàm, dùng để gọi hàm gián tiếp.\n- **Cú pháp khai báo**: `<ReturnType> (*<Name>)(<Params>);`\n```cpp\nint (*f1)(double);       // nhận double, trả int\nvoid (*f2)(char*);       // nhận char*, trả void\ndouble* (*f3)(int, int); // nhận 2 int, trả double*\n```\n- **Sử dụng**:\n```cpp\nint (*fptr1)(int);\nint square(int num) { return num * num; }\n\nfptr1 = square;           // gán địa chỉ hàm\nprintf(\"%d\", fptr1(5));  // gọi qua pointer → 25\n```\n- **Ứng dụng**: callback, sort với comparator tùy chỉnh, strategy pattern.",
+    "recallPrompt": "Giải thích tại sao cú pháp `int (*fptr)(int)` cần cặp ngoặc quanh `*fptr` — nếu bỏ ngoặc `int *fptr(int)` có nghĩa là gì?",
+    "blanks": ["function pointer", "callback", "int (*fptr)(int)"]
+  },
+  {
+    "id": "ptr-structures",
+    "title": "Pointer & Struct — Toán tử `->`",
+    "content": "- Khai báo pointer đến struct và truy cập field:\n```cpp\nstruct Person {\n    char firstName[100];\n    unsigned int age;\n};\nPerson *p;\n\n// Hai cách tương đương:\ncout << p->age;     // dùng toán tử ->\ncout << (*p).age;   // dereference rồi dùng .\n```\n- **`->` là sugar syntax** cho `(*p).field` — tránh lỗi do precedence.\n- **Ưu tiên toán tử**: `->` và `.` có precedence **cao hơn** `*` — do đó `*p->field` nghĩa là `*(p->field)`, không phải `(*p)->field`.\n- **Bảng biểu thức**:\n  - `s->m` ≡ `(*s).m` — truy cập field m qua pointer s\n  - `*s->p` ≡ `*(s->p)` — dereference field pointer p của struct s",
+    "recallPrompt": "Giải thích tại sao toán tử `->` được phát minh — nếu không có nó, biểu thức `(*(*s).p).m` sẽ phải viết thế nào và dễ nhầm ở đâu?",
+    "blanks": ["->", "(*p).field", "precedence"]
+  }
+]

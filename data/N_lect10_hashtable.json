@@ -1,0 +1,93 @@
+[
+  {
+    "id": "modular-arithmetic-definition",
+    "title": "Modular Arithmetic — Congruence & Tính chất",
+    "content": "- **Congruence**: $a \\equiv b \\pmod{n}$ nếu $n \\mid (a-b)$.\n- **Equivalence relation**: reflexive, symmetric, transitive.\n- **Arithmetic properties**: nếu $a_1 \\equiv b_1$ và $a_2 \\equiv b_2 \\pmod{n}$ thì:\n  - $a_1 + a_2 \\equiv b_1 + b_2 \\pmod{n}$\n  - $a_1 - a_2 \\equiv b_1 - b_2 \\pmod{n}$\n  - $a_1 \\cdot a_2 \\equiv b_1 \\cdot b_2 \\pmod{n}$\n  - $a_1^k \\equiv b_1^k \\pmod{n}$\n- **Kỹ thuật tính $x^k \\bmod n$**: dùng **repeated squaring** — tính $x^{2^i} \\bmod n$ lần lượt thay vì nhân $k$ lần → $O(\\log k)$ phép nhân.",
+    "recallPrompt": "Tính $3^{32} \\bmod 17$ bằng repeated squaring — liệt kê từng bước bình phương và giá trị mod tương ứng.",
+    "blanks": ["$a \\equiv b \\pmod{n}$", "repeated squaring", "$O(\\log k)$"]
+  },
+  {
+    "id": "modular-lcg-rsa",
+    "title": "Modular Arithmetic — LCG & RSA",
+    "content": "- **Linear Congruential Generator (LCG)**: tạo chuỗi pseudo-random:\n$$r_n \\equiv a \\times r_{n-1} + c \\pmod{m}$$\n  - $m$: modulus; $a$: multiplier; $c$: increment; $r_0$: seed.\n- **RSA Cryptosystem** — 4 bước:\n  1. **Key generation**: tạo $n$, public key $e$, private key $d$.\n  2. **Distribution**: chia sẻ $(n, e)$ công khai, giữ bí mật $d$.\n  3. **Encrypt**: $c = m^e \\bmod n$.\n  4. **Decrypt**: $m = c^d \\bmod n$.\n- Ví dụ: $n=3233$, $e=17$, $d=413$; encrypt($65$) = $65^{17} \\bmod 3233 = 2790$.",
+    "recallPrompt": "Giải thích tại sao RSA an toàn — nếu biết $n$ và $e$ (public), tại sao khó tìm được $d$ (private)?",
+    "blanks": ["LCG", "$c = m^e \\bmod n$", "$m = c^d \\bmod n$"]
+  },
+  {
+    "id": "hash-function-properties",
+    "title": "Hash Function — 3 Tiêu chí & Các Phương pháp",
+    "content": "- **Hash function**: ánh xạ key → array index: $h: U \\to \\{0, 1, \\ldots, m-1\\}$.\n- **3 tiêu chí quan trọng**:\n  1. **Consistent**: equal keys → same hash value.\n  2. **Efficient**: tính toán nhanh.\n  3. **Uniform**: phân phối keys đều trên $[0, m-1]$.\n- **Integer keys** — division method: $h(k) = k \\bmod m$.\n- **Float keys** — multiplication method: $h(k) = \\lfloor m \\cdot (k \\cdot A \\bmod 1) \\rfloor$ với Knuth đề xuất $A = \\frac{\\sqrt{5}-1}{2} \\approx 0.618$.\n- **String keys** — Horner's rule:\n```cpp\nunsigned int hash(string &s, int m) {\n    unsigned int h = 0, r = 127;\n    for (int k = 0; k < s.length(); k++)\n        h = (h * r + s[k]) % m;\n    return h;\n}\n```",
+    "recallPrompt": "Tại sao Horner's rule hiệu quả hơn tính $s_0 \\cdot r^n + s_1 \\cdot r^{n-1} + \\ldots$ trực tiếp — số phép nhân giảm từ bao nhiêu xuống bao nhiêu?",
+    "blanks": ["$h(k) = k \\bmod m$", "Horner's rule", "$A = \\frac{\\sqrt{5}-1}{2}$"]
+  },
+  {
+    "id": "hashtable-definition-loadfactor",
+    "title": "Hash Table — Định nghĩa & Load Factor",
+    "content": "- **Hash table**: cấu trúc dữ liệu cài đặt associative array, map keys → values qua hash function.\n- **Load factor**: $\\alpha = n/m$ (số phần tử / số slots).\n- **Thực tế**: giữ $\\frac{1}{8} \\leq \\alpha \\leq \\frac{1}{2}$ cho open addressing.\n- **Collision**: $k_1 \\neq k_2$ nhưng $h(k_1) = h(k_2)$ — không tránh khỏi (Birthday paradox).\n- **Birthday problem**: expect 2 balls vào cùng bin sau $\\sim \\sqrt{\\pi m/2}$ throws.\n- **2 chiến lược xử lý collision**:\n  - **Separate chaining**: dùng linked list tại mỗi slot.\n  - **Open addressing**: tìm slot trống trong bảng.",
+    "recallPrompt": "Giải thích Birthday paradox trong context hash table — tại sao collision xảy ra sớm hơn ta nghĩ khi $n \\ll m$?",
+    "blanks": ["load factor $\\alpha = n/m$", "separate chaining", "open addressing"]
+  },
+  {
+    "id": "hashtable-chaining",
+    "title": "Separate Chaining — Cài đặt & Phân tích",
+    "content": "- **Separate chaining**: mọi key hash đến slot $j$ được lưu trong **linked list** tại `T[j]`.\n```\nChained-Hash-Insert(T, x):\n    insert x at head of list T[h(x.key)]\n\nChained-Hash-Search(T, k):\n    search in list T[h(k)]\n\nChained-Hash-Delete(T, x):\n    delete x from list T[h(x.key)]\n```\n- **Phân tích** (simple uniform hashing assumption):\n  - Unsuccessful search: $\\Theta(1 + \\alpha)$.\n  - Successful search: $\\Theta(1 + \\alpha)$.\n- Khi $\\alpha = O(1)$: mọi thao tác $O(1)$ trung bình.\n- **Nhược điểm**: tốn bộ nhớ cho linked list nodes; pointer chasing kém cache-friendly.",
+    "recallPrompt": "Tại sao cost của successful search là $\\Theta(1 + \\alpha)$ chứ không phải $\\Theta(\\alpha)$ — số 1 đến từ đâu?",
+    "blanks": ["linked list", "$\\Theta(1 + \\alpha)$", "simple uniform hashing"]
+  },
+  {
+    "id": "hashtable-openaddressing",
+    "title": "Open Addressing — Probe Sequence & Insert/Search",
+    "content": "- **Open addressing**: không dùng linked list — lưu $n$ keys trong bảng kích thước $m > n$, tìm slot trống khi collision.\n- **Probe sequence**: $\\langle h(k,0), h(k,1), \\ldots, h(k,m-1) \\rangle$ là hoán vị của $\\{0, \\ldots, m-1\\}$.\n```\nHash-Insert(T, k):\n    i ← 0\n    repeat\n        j ← h(k, i)\n        if T[j] = null: T[j] ← k; return j\n        else: i ← i + 1\n    until i = m\n    error \"overflow\"\n\nHash-Search(T, k):\n    i ← 0\n    repeat\n        j ← h(k, i)\n        if T[j] = k: return j\n        i ← i + 1\n    until T[j] = null or i = m\n    return null\n```\n- **Random probing** — expected probes:\n  - Unsuccessful: $\\leq \\dfrac{1}{1-\\alpha}$\n  - Successful: $\\leq \\dfrac{1}{\\alpha} \\ln \\dfrac{1}{1-\\alpha}$",
+    "recallPrompt": "Tại sao Hash-Search dừng khi gặp `null` — nếu không dừng ở null mà tiếp tục, điều gì sai?",
+    "blanks": ["probe sequence", "$\\dfrac{1}{1-\\alpha}$", "open addressing"]
+  },
+  {
+    "id": "hashtable-linearprobing",
+    "title": "Linear Probing — Primary Clustering & Phân tích",
+    "content": "- **Linear probing**: probe sequence đơn giản nhất:\n$$h(k, i) = (h'(k) + i) \\bmod m$$\n- **Ưu điểm**: đơn giản, cache-friendly.\n- **Nhược điểm**: **primary clustering** — các keys hash gần nhau tạo thành **cluster** dài, làm chậm thao tác.\n- **Phân tích** (uniform hashing):\n  - Search hit: $\\sim \\dfrac{1}{2}\\left(1 + \\dfrac{1}{1-\\alpha}\\right)$\n  - Search miss/insert: $\\sim \\dfrac{1}{2}\\left(1 + \\dfrac{1}{(1-\\alpha)^2}\\right)$\n- Khi $\\alpha = 0.9$: search miss ≈ **50 probes** — rất chậm!\n- **Quadratic probing**: $h(k,i) = (h'(k) + c_1 i + c_2 i^2) \\bmod m$ — giảm primary clustering nhưng còn **secondary clustering**.",
+    "recallPrompt": "Giải thích primary clustering — tại sao một cluster lớn lại thu hút thêm keys mới vào nó, làm cluster ngày càng to hơn?",
+    "blanks": ["primary clustering", "$h(k, i) = (h'(k) + i) \\bmod m$", "secondary clustering"]
+  },
+  {
+    "id": "hashtable-doublehashing",
+    "title": "Double Hashing — Best Open Addressing",
+    "content": "- **Double hashing**: dùng hai hash functions độc lập:\n$$h(k, i) = (h_1(k) + i \\cdot h_2(k)) \\bmod m$$\n- **Điều kiện**: $h_2(k)$ phải **relatively prime** với $m$ để probe toàn bộ bảng.\n- **Ưu điểm**: probe sequence gần như random → ít clustering nhất trong các open addressing methods.\n- **So sánh** số probes khi $\\alpha = 0.9$:\n\n| Method | Search miss (probes) |\n|---|---|\n| Linear probing | $\\sim 50$ |\n| Random/Double hashing | $\\sim 10$ |\n| Chaining | $\\sim 0.9$ |\n\n- Chaining vẫn tốt nhất ở high load factor.",
+    "recallPrompt": "Tại sao $h_2(k)$ phải relatively prime với $m$ — cho ví dụ cụ thể khi $h_2(k) = 2$ và $m = 4$, điều gì xảy ra với probe sequence?",
+    "blanks": ["$h(k, i) = (h_1(k) + i \\cdot h_2(k)) \\bmod m$", "relatively prime", "random"]
+  },
+  {
+    "id": "hashtable-dynamic-resize",
+    "title": "Dynamic Hash Table — Resizing",
+    "content": "- **Vấn đề**: $m$ cố định → khi $n$ tăng, $\\alpha$ tăng → performance giảm.\n- **Giải pháp**: **resize** động dựa trên load factor:\n  - Nếu $\\alpha > 1/2$: double table size $m \\leftarrow 2m$.\n  - Nếu $\\alpha < 1/8$: halve table size $m \\leftarrow m/2$.\n- **Rehashing**: khi resize, phải **reinsert tất cả $n$ keys** vào bảng mới — $O(n)$ per resize.\n- **Amortized cost**: $O(1)$ per insert vì resize xảy ra rất ít lần (mỗi lần double, cần $m/2$ inserts mới để trigger resize tiếp theo).\n- Tương tự dynamic array (ArrayList) nhưng cho hash table.",
+    "recallPrompt": "Chứng minh amortized cost của insert trong dynamic hash table là $O(1)$ — dùng potential method hoặc aggregate analysis.",
+    "blanks": ["$\\alpha > 1/2$", "rehashing", "amortized $O(1)$"]
+  },
+  {
+    "id": "hashtable-universal-hashing",
+    "title": "Universal Hashing — Chống Worst-Case",
+    "content": "- **Vấn đề**: hash function cố định → adversary có thể chọn keys làm nhiều collisions.\n- **Universal hashing**: chọn $h$ **ngẫu nhiên** từ tập $H$ sao cho với mọi cặp keys phân biệt $k, l$:\n$$|\\{h \\in H \\mid h(k) = h(l)\\}| \\leq \\frac{|H|}{m}$$\n  Nghĩa là: xác suất collision giữa hai key bất kỳ là $\\leq 1/m$.\n- **Kết quả**: với $n$ keys và universal hash, $E[\\text{collisions với key } k] \\leq n/m = \\alpha$.\n- **Lớp universal hash** — chọn prime $p > \\max(U)$, $a \\in \\mathbb{Z}_p^*$, $b \\in \\mathbb{Z}_p$:\n$$h_{ab}(k) = ((ak + b) \\bmod p) \\bmod m$$\n  Tập $H_{pm} = \\{h_{ab}\\}$ là universal.",
+    "recallPrompt": "Giải thích tại sao universal hashing bảo vệ chống adversarial input — nếu adversary không biết hash function nào được chọn, tại sao khó tạo ra worst-case?",
+    "blanks": ["universal hashing", "$\\frac{|H|}{m}$", "$h_{ab}(k) = ((ak + b) \\bmod p) \\bmod m$"]
+  },
+  {
+    "id": "hashtable-perfect-hashing",
+    "title": "Perfect Hashing — O(1) Worst-Case Search",
+    "content": "- **Perfect hashing**: với $n$ keys **tĩnh**, xây bảng đảm bảo **search $O(1)$ worst case** (không có collision).\n- **Giải pháp $O(n^2)$ space**: dùng bảng size $m = n^2$ với universal hash → xác suất collision < $1/2$.\n- **Giải pháp $O(n)$ space** — **two-level hashing**:\n  1. Level 1: hash $n$ keys vào $m = n$ slots (chaining).\n  2. Level 2: mỗi bucket $j$ có $c_j$ keys → bảng phụ $S_j$ size $c_j^2$ với hash riêng → **không collision**.\n  3. Tổng space: $\\sum_j c_j^2 = O(n)$ expected.\n- **Search**:\n```\nSearchPerfectTable(T, k):\n    j ← h(k)\n    p ← hj(k)\n    return Sj[p]\n```",
+    "recallPrompt": "Tại sao dùng bảng phụ size $c_j^2$ (không phải $c_j$) ở level 2 đảm bảo không có collision — liên hệ với Birthday paradox.",
+    "blanks": ["two-level hashing", "$c_j^2$", "$O(1)$ worst case"]
+  },
+  {
+    "id": "hashtable-cuckoo-hashing",
+    "title": "Cuckoo Hashing — Two Tables, O(1) Worst-Case Lookup",
+    "content": "- **Cuckoo hashing**: duy trì **2 bảng** $T_1$, $T_2$ với 2 hash functions $h_1$, $h_2$ độc lập. Mỗi key được lưu ở **đúng 1 trong 2 vị trí**: $T_1[h_1(k)]$ hoặc $T_2[h_2(k)]$.\n- **Lookup**: $O(1)$ worst case — chỉ check **đúng 2 vị trí**.\n- **Insert** — displacement chain:\n```\nInsertCuckooTable(T1, h1, T2, h2, k):\n    repeat:\n        insert k vào T1[h1(k)]\n        if collision: move displaced key l to T2[h2(l)]\n        if T2 collision: move displaced key to T1\n        ...\n    until success (or loop detected → rehash)\n```\n- **Expected insert**: $O(1)$ amortized với $\\alpha < 1/2$.\n- **Tên**: lấy cảm hứng từ chim cuckoo đẩy trứng chim khác ra khỏi tổ.",
+    "recallPrompt": "Cuckoo hashing đảm bảo lookup O(1) worst case như thế nào — tại sao chỉ cần check đúng 2 vị trí mà không cần probe thêm?",
+    "blanks": ["2 bảng", "$O(1)$ worst case", "displacement chain"]
+  },
+  {
+    "id": "hashtable-performance-comparison",
+    "title": "Hash Table vs BST — So sánh Toàn bộ",
+    "content": "- Tổng hợp hiệu năng (search hit average):\n\n| Implementation | Search (worst) | Search hit (avg) | Key type |\n|---|---|---|---|\n| BST | $O(N)$ | $1.39\\log_2 N$ | comparable |\n| AVL | $1.44\\log_2 N$ | $\\log_2 N$ | comparable |\n| RB tree | $2\\log_2 N$ | $\\log_2 N$ | comparable |\n| Chaining hash | $O(N)$ or $O(\\ln N)$ | $O(1)$ | equality |\n| Linear hash | $O(N)$ or $O(\\ln N)$ | $O(1)$ | equality |\n\n- **Hash table**: $O(1)$ average nhưng cần equality test, không hỗ trợ **ordered operations** (min, max, floor, range).\n- **BST/AVL/RB**: $O(\\log N)$ nhưng hỗ trợ đầy đủ ordered symbol table API.\n- **Chọn khi nào**: hash → chỉ cần insert/search/delete nhanh; tree → cần ordered iteration, floor, ceiling, rank.",
+    "recallPrompt": "Cho ví dụ ứng dụng thực tế cần ordered operations và một ứng dụng chỉ cần equality — và giải thích tại sao hash table không dùng được cho ứng dụng đầu.",
+    "blanks": ["$O(1)$", "ordered operations", "equality test"]
+  }
+]

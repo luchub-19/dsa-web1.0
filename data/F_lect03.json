@@ -1,0 +1,79 @@
+[
+  {
+    "id": "sorting-intro-concepts",
+    "title": "Sorting — Khái niệm Cơ bản: Inversion, Stable, Adaptive",
+    "content": "- **Inversion**: cặp phần tử nằm sai thứ tự trong mảng. Vd: `{E,X,A,M,P,L,E}` có **11 inversions**.\n- **Partially sorted**: số inversions < hằng số nhân kích thước mảng.\n- **Stable sort**: bảo toàn thứ tự tương đối của các phần tử bằng nhau.\n- **Adaptive sort**: tận dụng cấu trúc có sẵn của dữ liệu để cải thiện hiệu năng.\n- **Lower bound** cho compare-based sorting: không thuật toán nào đảm bảo ít hơn $\\log_2(N!) \\sim N\\log_2 N$ phép so sánh trong worst case.",
+    "recallPrompt": "Đếm số inversions trong mảng `{5, 3, 1, 4, 2}` — tại sao số inversions là thước đo độ 'lộn xộn' của mảng?",
+    "blanks": ["inversion", "stable", "$\\log_2(N!)$"]
+  },
+  {
+    "id": "sorting-selection",
+    "title": "Selection Sort — Ý tưởng & Phân tích",
+    "content": "- **Ý tưởng**: chia mảng thành phần đã sắp ($s$) và chưa sắp ($u$). Mỗi bước tìm phần tử nhỏ nhất của $u$, chuyển sang cuối $s$.\n- Luôn thực hiện đúng $\\sim N^2/2$ phép so sánh và $N$ phép hoán vị.\n- Độ phức tạp: best = average = worst = $O(n^2)$ — **không adaptive**.\n- Space: $O(1)$ (in-place). **Không stable**.\n\n```cpp\ntemplate <class Item>\nvoid selection(Item a[], int l, int r) {\n    for (int i = l; i < r; i++) {\n        int min = i;\n        for (int j = i+1; j <= r; j++)\n            if (a[j] < a[min]) min = j;\n        swap(a[i], a[min]);\n    }\n}\n```",
+    "recallPrompt": "Tại sao Selection Sort không thể hưởng lợi từ mảng đã gần sắp xếp — ngay cả khi mảng đã sorted hoàn toàn nó vẫn làm bao nhiêu phép so sánh?",
+    "blanks": ["$N^2/2$", "$N$ phép hoán vị", "không adaptive"]
+  },
+  {
+    "id": "sorting-insertion",
+    "title": "Insertion Sort — Ý tưởng & Phân tích",
+    "content": "- **Ý tưởng**: lấy từng phần tử từ phần chưa sắp, chèn vào đúng vị trí trong phần đã sắp.\n- **Số exchanges = số inversions** trong mảng. Số compares ∈ [inversions, inversions + N − 1].\n- Trung bình: $\\sim N^2/4$ compares và $\\sim N^2/4$ exchanges.\n- **Best case** (đã sorted): $O(n)$. **Worst case** (đảo ngược): $O(n^2)$. **Adaptive** — hiệu quả với partially sorted.\n- Space: $O(1)$. **Stable**.\n\n```cpp\ntemplate <class Item>\nvoid insertionsort(Item a[], int l, int r) {\n    for (int i = l+1; i <= r; i++) {\n        Item v = a[i]; int j = i;\n        for (; j > l && v < a[j-1]; j--)\n            a[j] = a[j-1];\n        a[j] = v;\n    }\n}\n```",
+    "recallPrompt": "Giải thích tại sao số exchanges của Insertion Sort bằng đúng số inversions — chứng minh mỗi lần swap giảm đúng 1 inversion.",
+    "blanks": ["inversions", "$N^2/4$", "Stable"]
+  },
+  {
+    "id": "sorting-bubble",
+    "title": "Bubble Sort — Ý tưởng & Đặc điểm",
+    "content": "- **Ý tưởng**: duyệt nhiều lần qua mảng, hoán vị các phần tử kề nhau nếu sai thứ tự, cho đến khi mảng sorted.\n- Bubble Sort là một dạng **Selection Sort**.\n- Độ phức tạp: best = average = worst = $O(n^2)$.\n- Space: $O(1)$. **Stable**.\n\n```cpp\ntemplate <class Item>\nvoid bubblesort(Item a[], int l, int r) {\n    for (int i = l; i < r; i++)\n        for (int j = r; j > i; j--)\n            compare_swap(a[j-1], a[j]);\n}\n```\n\n- **Tối ưu hóa**: dừng sớm nếu không có hoán vị nào trong một pass → adaptive với mảng gần sorted.",
+    "recallPrompt": "Tại sao Bubble Sort được coi là dạng Selection Sort — phần tử nào 'nổi lên' sau mỗi pass và nó giống Selection Sort ở điểm nào?",
+    "blanks": ["Selection Sort", "$O(n^2)$", "Stable"]
+  },
+  {
+    "id": "sorting-shell",
+    "title": "Shell Sort — Gap Sequence & Phân tích",
+    "content": "- **Vấn đề Insertion Sort**: chỉ hoán vị phần tử kề nhau → di chuyển chậm.\n- **Shell Sort**: cho phép hoán vị phần tử *cách xa* nhau bằng chuỗi gap $\\{h_1, h_2, \\ldots, h_t\\}$ với $h_t = 1$. Mỗi bước h-sort bằng Insertion Sort.\n- **Các chuỗi gap nổi tiếng**:\n  - Shell: $h_1 = N/2,\\ h_{i+1} = h_i/2$\n  - Knuth: $h_1 = 1,\\ h_{i+1} = 3h_i + 1$ → $\\{1, 4, 13, 40, 121, \\ldots\\}$\n  - Hibbard: $h_i = 2^i - 1$\n- Độ phức tạp: tốt hơn $O(n^2)$, Knuth sequence cho $O(n^{3/2})$. Space: $O(1)$. **Không stable**.\n- **Tính chất**: h-sort một mảng đã k-ordered cho mảng vừa h- vừa k-ordered.",
+    "recallPrompt": "Giải thích trực giác tại sao việc h-sort trước (với h lớn) lại giúp Insertion Sort (h=1) chạy nhanh hơn — điều gì xảy ra với số inversions?",
+    "blanks": ["gap sequence", "Knuth", "$O(n^{3/2})$"]
+  },
+  {
+    "id": "sorting-heap",
+    "title": "Heap Sort — Max-heap & Thuật toán",
+    "content": "- **Max-heap**: cây nhị phân hoàn chỉnh, mỗi node ≥ tất cả con của nó. Root = phần tử lớn nhất.\n- **Biểu diễn mảng**: root = $a_0$; parent($a_i$) = $a_{\\lfloor(i-1)/2\\rfloor}$; left = $a_{2i+1}$; right = $a_{2i+2}$.\n- **Heapify** (top-down): đổi chỗ node với con lớn nhất, lặp xuống đến khi đúng vị trí.\n- **Heapsort 2 bước**:\n  1. Build max-heap: heapify từ $a_{n/2-1}$ xuống $a_0$.\n  2. Lặp: swap($a_0$, $a_{N-1}$), giảm N, heapify $a_0$.\n- Độ phức tạp: best = average = worst = $O(n\\log n)$. Số compares $< 2N\\log_2 N$.\n- Space: $O(1)$. **Không stable**.",
+    "recallPrompt": "Tại sao trong bước build max-heap, ta chỉ cần heapify từ $a_{n/2-1}$ trở về $a_0$ mà không cần xử lý các phần tử từ $a_{n/2}$ trở đi?",
+    "blanks": ["max-heap", "$a_{\\lfloor(i-1)/2\\rfloor}$", "$2N\\log_2 N$"]
+  },
+  {
+    "id": "sorting-merge",
+    "title": "Merge Sort — Top-down & Bottom-up",
+    "content": "- **Top-down**: chia đôi đệ quy, merge hai nửa đã sorted:\n  1. Base case: $l \\geq r$ → return.\n  2. $m = \\lfloor(l+r)/2\\rfloor$; sort $[l..m]$; sort $[m+1..r]$; merge.\n- **Bottom-up**: không đệ quy — merge các cặp kích thước sz, tăng gấp đôi sz mỗi pass.\n- **Merge function**: dùng mảng phụ `aux[]`, hai con trỏ $i, j$ di chuyển từ trái sang phải.\n- Độ phức tạp: $\\sim N\\log_2 N$ compares. Best = average = worst = $O(n\\log n)$.\n- Space: $O(n)$ (cần mảng phụ `aux`). **Stable**.\n\n```cpp\ntemplate <class Item>\nvoid mergesort(Item a[], Item aux[], int l, int r) {\n    if (r <= l) return;\n    int m = (l + r) / 2;\n    mergesort(a, aux, l, m);\n    mergesort(a, aux, m+1, r);\n    merge(a, aux, l, m, r);\n}\n```",
+    "recallPrompt": "So sánh top-down và bottom-up Merge Sort — tại sao bottom-up không cần đệ quy và hai cách có cùng số phép so sánh không?",
+    "blanks": ["$N\\log_2 N$", "mảng phụ", "Stable"]
+  },
+  {
+    "id": "sorting-quick",
+    "title": "Quick Sort — Partition & Phân tích",
+    "content": "- **Ý tưởng** (Hoare, 1960): chọn pivot $v$, partition mảng thành $a_{left} \\leq v \\leq a_{right}$, sort đệ quy hai phần.\n- **Partition**: hai con trỏ $i$ (từ trái) và $j$ (từ phải) tiến về nhau, swap khi $a[i] \\geq v$ và $a[j] \\leq v$.\n- Trung bình: $\\sim 2N\\log_2 N$ compares. **Best/Average**: $O(n\\log n)$.\n- **Worst case** (mảng đã sorted, pivot luôn là nhỏ nhất/lớn nhất): $\\sim N^2/2$ compares → $O(n^2)$.\n- Space: $O(\\log n)$ (call stack). **Không stable**.\n- **Lower bound**: mọi compare-based sort cần ít nhất $\\log_2(N!) \\sim N\\log_2 N$ compares.\n\n```cpp\ntemplate <class Item>\nvoid quicksort(Item a[], int l, int r) {\n    if (r <= l) return;\n    int i = partition(a, l, r);\n    quicksort(a, l, i-1);\n    quicksort(a, i+1, r);\n}\n```",
+    "recallPrompt": "Tại sao Quick Sort đạt $O(n^2)$ trong worst case và trường hợp đó xảy ra khi nào — giải pháp thực tế nào ngăn chặn điều này?",
+    "blanks": ["pivot", "$\\sim 2N\\log_2 N$", "$O(n^2)$"]
+  },
+  {
+    "id": "sorting-comparison-table",
+    "title": "So sánh Toàn bộ Thuật toán Sắp xếp",
+    "content": "| Thuật toán | Stable | In-place | Time | Space |\n|---|:---:|:---:|---|---|\n| Selection | ✗ | ✓ | $O(n^2)$ | $O(1)$ |\n| Insertion | ✓ | ✓ | $O(n)$–$O(n^2)$ | $O(1)$ |\n| Shell | ✗ | ✓ | $O(n^{6/5})$? | $O(1)$ |\n| Merge | ✓ | ✗ | $O(n\\log n)$ | $O(n)$ |\n| Quick | ✗ | ✓ | $O(n\\log n)$ avg | $O(\\log n)$ |\n| 3-way Quick | ✗ | ✓ | $O(n)$–$O(n\\log n)$ | $O(\\log n)$ |\n| Heap | ✗ | ✓ | $O(n\\log n)$ | $O(1)$ |\n\n- **Chỉ Merge Sort** đảm bảo $O(n\\log n)$ worst case *và* stable.\n- **Quick Sort** nhanh nhất trong thực tế nhờ cache locality dù worst case $O(n^2)$.",
+    "recallPrompt": "Nếu cần sắp xếp dữ liệu lớn mà yêu cầu stable và worst-case $O(n\\log n)$ — bạn chọn thuật toán nào và tại sao không dùng Quick Sort?",
+    "blanks": ["Stable", "$O(n\\log n)$", "in-place"]
+  },
+  {
+    "id": "sorting-key-indexed-counting",
+    "title": "Key-indexed Counting — Counting Sort",
+    "content": "- **Giả thiết**: keys là số nguyên trong khoảng $[0, R-1]$.\n- **4 bước**:\n  1. **Đếm tần suất**: `count[a[i].key()+1]++` cho mỗi phần tử.\n  2. **Tính vị trí**: `count[r+1] += count[r]` (prefix sum).\n  3. **Phân phối**: `aux[count[a[i].key()]++] = a[i]`.\n  4. **Chép lại**: copy `aux` về `a`.\n- Chi phí: $8N + 3R + 1$ truy cập mảng.\n- Độ phức tạp: $O(N + R)$. **Stable**.\n- **Khi nào dùng**: $R$ nhỏ (vd: ký tự ASCII, chữ số).",
+    "recallPrompt": "Giải thích bước 'Transform counts to indices' (prefix sum) — tại sao dùng `count[key+1]` thay vì `count[key]` ở bước đếm tần suất?",
+    "blanks": ["prefix sum", "$O(N + R)$", "Stable"]
+  },
+  {
+    "id": "sorting-radix",
+    "title": "Radix Sort — LSD & MSD",
+    "content": "- **Ý tưởng**: xem keys là số hệ cơ số $R$, sắp xếp theo từng chữ số.\n- **LSD (Least Significant Digit)**: xử lý từ chữ số **phải sang trái** (bottom-up). Dùng stable sort (Key-indexed Counting) cho mỗi digit.\n- **MSD (Most Significant Digit)**: xử lý từ chữ số **trái sang phải** (top-down). Phải xử lý sub-group độc lập.\n- **Ví dụ LSD** `{170, 45, 75, 90, 802, 2, 24, 66}` với 3 digits, radix 10:\n  - Pass $d=0$ → $d=1$ → $d=2$: kết quả `{2, 24, 45, 66, 75, 90, 170, 802}`.\n- Độ phức tạp LSD: $O(w(N+R))$ với $w$ = số chữ số, $N$ = số phần tử, $R$ = radix.\n- Khi $w$ = hằng số: $O(N)$ — **vượt giới hạn** compare-based $O(N\\log N)$.",
+    "recallPrompt": "Tại sao LSD Radix Sort phải dùng stable sort ở mỗi bước — điều gì xảy ra nếu dùng unstable sort và kết quả cuối cùng sẽ sai thế nào?",
+    "blanks": ["LSD", "MSD", "$O(w(N+R))$"]
+  }
+]

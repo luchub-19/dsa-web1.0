@@ -1,0 +1,65 @@
+[
+  {
+    "id": "pq-definition-api",
+    "title": "Priority Queue — Định nghĩa & API",
+    "content": "- **Priority queue**: cấu trúc dữ liệu duy trì tập $S$ các phần tử, mỗi phần tử có **key** (độ ưu tiên).\n- **Max-priority queue** hỗ trợ:\n  - `Insert(S, x)`: thêm $x$ vào $S$.\n  - `Max(S)`: trả về phần tử key lớn nhất — $O(1)$.\n  - `Remove-Max(S)`: xóa và trả về phần tử key lớn nhất.\n  - `Increase-Key(S, x, Δk)`: tăng key của $x$ thêm $\\Delta k$.\n- So sánh cài đặt cơ bản:\n\n| Implementation | Insert | Remove-Max | Max |\n|---|---|---|---|\n| Unordered array | $O(1)$ | $O(N)$ | $O(N)$ |\n| Ordered array | $O(N)$ | $O(1)$ | $O(1)$ |\n| **Binary heap** | $O(\\log N)$ | $O(\\log N)$ | $O(1)$ |",
+    "recallPrompt": "Tại sao unordered array insert $O(1)$ nhưng remove-max $O(N)$, trong khi ordered array ngược lại — và binary heap đạt được cân bằng này như thế nào?",
+    "blanks": ["Max-priority queue", "Remove-Max", "$O(\\log N)$"]
+  },
+  {
+    "id": "pq-applications",
+    "title": "Priority Queue — Ứng dụng Thực tế",
+    "content": "- Priority queue xuất hiện trong rất nhiều thuật toán quan trọng:\n  - **Dijkstra & Prim**: graph searching (min-priority queue cho shortest path / MST).\n  - **Huffman codes**: data compression.\n  - **A\\* search**: AI pathfinding.\n  - **Event-driven simulation**: xử lý sự kiện theo thứ tự thời gian.\n  - **Heap sort**: sắp xếp $O(n \\log n)$.\n  - **OS scheduling**: load balancing, interrupt handling.\n  - **Statistics**: duy trì $M$ giá trị lớn nhất trong stream.\n- Nguyên tắc chung: bất cứ khi nào cần **lấy phần tử ưu tiên nhất** lặp đi lặp lại → dùng priority queue.",
+    "recallPrompt": "Giải thích tại sao Dijkstra's algorithm cần min-priority queue — điều gì xảy ra nếu thay bằng unordered array?",
+    "blanks": ["Dijkstra", "Huffman", "event-driven simulation"]
+  },
+  {
+    "id": "heap-definition-array",
+    "title": "Binary Heap — Định nghĩa & Biểu diễn Mảng",
+    "content": "- **Max-heap**: cây nhị phân **heap-ordered** — key tại mỗi node ≥ key của mọi con. Root = phần tử **lớn nhất**.\n- **Min-heap**: key tại mỗi node ≤ key của mọi con. Root = phần tử **nhỏ nhất**.\n- **Binary heap** = complete binary tree biểu diễn bằng **mảng** (0-indexed):\n  - Root: `a[0]`.\n  - Parent của `a[i]`: `a[⌊(i-1)/2⌋]`.\n  - Left child của `a[i]`: `a[2i+1]`.\n  - Right child của `a[i]`: `a[2i+2]`.\n- **Height** của complete binary tree $N$ nodes: $\\lfloor \\log_2(N+1) \\rfloor$.\n- **Tính chất**: không cần pointer → cache-friendly, ít overhead bộ nhớ.",
+    "recallPrompt": "Tại sao binary heap dùng 0-indexed array lại cho công thức parent/child khác 1-indexed — hãy derive công thức parent từ LeftChild(i) = 2i+1.",
+    "blanks": ["heap-ordered", "$a[\\lfloor(i-1)/2\\rfloor]$", "$\\lfloor \\log_2(N+1) \\rfloor$"]
+  },
+  {
+    "id": "heap-upheap-insert",
+    "title": "Binary Heap — Up-Heap (Swim) & Insert",
+    "content": "- **Up-Heap**: sửa vi phạm khi child > parent — swap lên đến khi heap-order khôi phục:\n```\nfunction Up-Heap(a, i):\n    while i > 0:\n        p ← floor((i-1) / 2)    // parent\n        if a[i] > a[p]:\n            Swap(a, i, p)\n            i ← p\n        else:\n            return\n```\n- **Insert**: thêm vào cuối mảng, rồi Up-Heap:\n```\nfunction Insert(a, k):\n    n ← a.size\n    a[n] ← k\n    Up-Heap(a, n)\n    a.size ← a.size + 1\n```\n- **Cost**: tối đa $\\log_2 N + 1$ phép so sánh (height của cây).\n- **Ví dụ**: insert 66 vào heap `[68,65,32,31,26,...]` → swap 66↔26, swap 66↔65.",
+    "recallPrompt": "Trace Up-Heap khi insert key 100 vào heap `[68, 65, 32, 31, 26]` — liệt kê từng swap và index thay đổi.",
+    "blanks": ["Up-Heap", "$\\log_2 N + 1$", "cuối mảng"]
+  },
+  {
+    "id": "heap-downheap-removemax",
+    "title": "Binary Heap — Down-Heap (Sink) & Remove-Max",
+    "content": "- **Down-Heap**: sửa vi phạm khi parent < một trong hai con — swap với con **lớn hơn**:\n```\nfunction Down-Heap(a, i):\n    l ← 2*i+1; r ← 2*i+2\n    largest ← i\n    if l < a.size and a[l] > a[largest]: largest ← l\n    if r < a.size and a[r] > a[largest]: largest ← r\n    if largest ≠ i:\n        Swap(a, i, largest)\n        Down-Heap(a, largest)\n```\n- **Remove-Max**: swap root với phần tử cuối, giảm size, Down-Heap từ root:\n```\nfunction Remove-Max(a):\n    n ← a.size\n    Swap(a, 0, n-1)\n    a.size ← a.size - 1\n    Down-Heap(a, 0)\n    return a[n]\n```\n- **Cost**: tối đa $2\\log_2 N$ phép so sánh (2 so sánh mỗi level — so sánh hai con trước).",
+    "recallPrompt": "Tại sao Down-Heap cần $2\\log_2 N$ compares (gấp đôi Up-Heap $\\log_2 N$) — so sánh thêm nào được thực hiện mỗi level?",
+    "blanks": ["Down-Heap", "con lớn hơn", "$2\\log_2 N$"]
+  },
+  {
+    "id": "heap-increase-key",
+    "title": "Binary Heap — Increase-Key với Hash Map",
+    "content": "- **Vấn đề**: heap thông thường không hỗ trợ tìm kiếm phần tử theo key → không thể Increase-Key trực tiếp.\n- **Giải pháp**: duy trì thêm **hash map** lưu `key → index trong mảng heap`.\n- **Thuật toán**:\n```\nfunction Increase-Key(a, k, Δk, map):\n    i ← map[k]              // tìm index qua map\n    map.Remove(k)           // xóa mapping cũ\n    a[i] ← a[i] + Δk       // tăng key\n    map[a[i]] ← i           // thêm mapping mới\n    Up-Heap(a, i, map)      // khôi phục heap order\n```\n- **Ứng dụng thực tế**: Dijkstra's algorithm cần giảm key (Decrease-Key trong min-heap) khi tìm đường ngắn hơn.\n- **Cost**: $O(\\log N)$ — chủ yếu do Up-Heap.",
+    "recallPrompt": "Tại sao Increase-Key cần Up-Heap (không phải Down-Heap) — trường hợp nào sau Increase-Key lại cần Down-Heap?",
+    "blanks": ["hash map", "Up-Heap", "$O(\\log N)$"]
+  },
+  {
+    "id": "dheap-definition",
+    "title": "d-Heap — Tổng quát hoá Binary Heap",
+    "content": "- **d-heap**: heap mỗi node có **$d$ children** (thay vì 2 như binary heap).\n- **Height**: $\\log_d N$ — thấp hơn binary heap → **fewer levels**.\n- **So sánh hiệu năng**:\n\n| Implementation | Insert | Remove-Max | Max |\n|---|---|---|---|\n| Binary heap | $O(\\log_2 N)$ | $O(\\log_2 N)$ | $O(1)$ |\n| d-heap | $O(\\log_d N)$ | $O(d \\cdot \\log_d N)$ | $O(1)$ |\n\n- **Trade-off**: Insert nhanh hơn (ít levels) nhưng Down-Heap chậm hơn (phải tìm max trong $d$ con).\n- **Khi nào dùng**: khi Insert nhiều hơn Remove-Max (vd: Prim's MST với dense graph).",
+    "recallPrompt": "Tại sao Remove-Max trong d-heap có cost $O(d \\cdot \\log_d N)$ — so sánh với binary heap $O(\\log_2 N)$ khi $d=4$?",
+    "blanks": ["$d$ children", "$\\log_d N$", "$O(d \\cdot \\log_d N)$"]
+  },
+  {
+    "id": "pq-event-driven-simulation",
+    "title": "Priority Queue — Event-Driven Simulation",
+    "content": "- **Bài toán**: $N$ particles di chuyển, va chạm đàn hồi với nhau và tường.\n- **Time-driven** (naive): discretize thời gian thành bước $dt$ — vấn đề:\n  - $\\sim N^2/2$ overlap checks mỗi bước.\n  - Nếu $dt$ nhỏ → quá chậm; nếu $dt$ lớn → bỏ qua collision.\n- **Event-driven** (dùng priority queue):\n  - Chỉ xử lý khi có **sự kiện** (collision).\n  - Duy trì **min-PQ** các collision events, ưu tiên theo **thời gian**.\n  - `Remove-Min` = sự kiện tiếp theo.\n- **Main loop**:\n```\n1. Xóa event sắp xảy ra khỏi PQ (min time t).\n2. Nếu event đã invalid → bỏ qua.\n3. Di chuyển tất cả particles đến thời điểm t.\n4. Cập nhật velocity của particle va chạm.\n5. Thêm các collision events mới vào PQ.\n```",
+    "recallPrompt": "Tại sao event-driven simulation hiệu quả hơn time-driven — khi $N$ tăng gấp đôi, số operations mỗi cách tăng thế nào?",
+    "blanks": ["min-PQ", "event-driven", "Remove-Min"]
+  },
+  {
+    "id": "pq-collision-prediction",
+    "title": "Particle Collision — Dự đoán & Giải quyết",
+    "content": "- **Dự đoán collision** particle $i$ và $j$:\n$$\\sigma = \\sigma_i + \\sigma_j, \\quad d = (\\Delta v \\cdot \\Delta r)^2 - (\\Delta v \\cdot \\Delta v)(\\Delta r \\cdot \\Delta r - \\sigma^2)$$\n$$\\Delta t = \\begin{cases} \\infty & \\text{nếu } \\Delta v \\cdot \\Delta r \\geq 0 \\\\ \\infty & \\text{nếu } d < 0 \\\\ -\\dfrac{\\Delta v \\cdot \\Delta r}{\\Delta v \\cdot \\Delta v} & \\text{otherwise} \\end{cases}$$\n- **Giải quyết collision** (cập nhật velocity sau va chạm):\n$$J = \\frac{2m_im_j(\\Delta v \\cdot \\Delta r)}{\\sigma(m_i + m_j)}, \\quad J_x = \\frac{J\\Delta r_x}{\\sigma}, \\quad J_y = \\frac{J\\Delta r_y}{\\sigma}$$\n$$v_{x_i}' = v_{x_i} + \\frac{J_x}{m_i}, \\quad v_{x_j}' = v_{x_j} - \\frac{J_x}{m_j}$$\n- **Impulse $J$**: tỷ lệ thuận với relative velocity dọc theo đường nối tâm.",
+    "recallPrompt": "Giải thích ý nghĩa vật lý của điều kiện $\\Delta v \\cdot \\Delta r \\geq 0$ — tại sao khi này hai particle không va chạm dù đang gần nhau?",
+    "blanks": ["$\\Delta t$", "impulse $J$", "$\\Delta v \\cdot \\Delta r$"]
+  }
+]

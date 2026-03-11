@@ -1,0 +1,65 @@
+[
+  {
+    "id": "fractal-definition",
+    "title": "Fractal — Định nghĩa & Ứng dụng",
+    "content": "- **Fractal**: nhánh hình học nghiên cứu các đối tượng có tính **tự tương đồng** (self-similarity) — phóng to bất kỳ phần nhỏ nào đều giống toàn bộ hình.\n- Xuất hiện trong tự nhiên: cây cối, đường bờ biển, dãy núi, gân lá.\n- **Ứng dụng thực tế**:\n  - *Tạo ảnh*: mây, núi, mặt nước, cây.\n  - *Nén ảnh*: khai thác tính lặp cấu trúc để giảm dung lượng.\n  - *Khoa học*: mô phỏng hệ hỗn loạn, cấu trúc vật liệu.",
+    "recallPrompt": "Giải thích tính tự tương đồng của fractal bằng một ví dụ từ thiên nhiên — tại sao tính chất này lại hữu ích cho nén ảnh?",
+    "blanks": ["tự tương đồng", "nén ảnh", "self-similarity"]
+  },
+  {
+    "id": "fractal-classic-examples",
+    "title": "Các Fractal Kinh điển — Quy tắc sinh",
+    "content": "- **Von Koch Curve**: chia đoạn thẳng thành 3 phần, thay phần giữa bằng 2 cạnh tam giác đều. Lặp lại với mọi đoạn mới.\n- **Koch Snowflake**: áp dụng quy tắc Von Koch lên **3 cạnh** của tam giác đều.\n- **Minkowski Curve**: chia đoạn thành 4 phần, thay 2 đoạn giữa bằng 6 đoạn mới.\n- **Sierpinski Triangle**: chia tam giác đều thành 4 tam giác nhỏ (nối trung điểm 3 cạnh), xóa tam giác giữa. Lặp với 3 tam giác còn lại.\n- **Minkowski Island**: áp dụng quy tắc Minkowski lên **4 cạnh** của hình vuông.",
+    "recallPrompt": "Mô tả quy tắc sinh Sierpinski Triangle sau 3 bước lặp — sau $n$ bước, còn lại bao nhiêu tam giác nhỏ?",
+    "blanks": ["Sierpinski Triangle", "Von Koch Curve", "Koch Snowflake"]
+  },
+  {
+    "id": "fractal-dimension",
+    "title": "Fractal Dimension — Chiều tự tương đồng",
+    "content": "- Chiều của fractal **không nhất thiết là số nguyên**.\n- Công thức tính chiều tự tương đồng $D$:\n$$D = \\frac{\\log(N)}{\\log(1/s)}$$\n  Trong đó: $N$ = số bản sao tự tương đồng, $s$ = hệ số thu nhỏ.\n- Kiểm chứng:\n  - Đoạn thẳng (1D): $D = \\frac{\\log N}{\\log N} = 1$\n  - Hình vuông (2D): $D = \\frac{\\log N^2}{\\log N} = 2$\n  - Hình lập phương (3D): $D = \\frac{\\log N^3}{\\log N} = 3$\n- **Von Koch Curve**: $N=4$, $s=1/3$ → $D = \\frac{\\log 4}{\\log 3} \\approx 1.26$\n  — lớn hơn 1D (đường thẳng) nhưng nhỏ hơn 2D (mặt phẳng).",
+    "recallPrompt": "Tại sao chiều fractal của Von Koch Curve là $\\approx 1.26$ lại có ý nghĩa hình học — nó nằm giữa đường thẳng và mặt phẳng nghĩa là gì?",
+    "blanks": ["$D = \\frac{\\log(N)}{\\log(1/s)}$", "Von Koch Curve", "số nguyên"]
+  },
+  {
+    "id": "ifs-mathematical-basis",
+    "title": "IFS — Cơ sở Toán học: Contraction Mapping",
+    "content": "- **Contraction Mapping**: ánh xạ $T$ trên không gian metric $(X, d)$ sao cho:\n$$d(T(x'), T(x'')) \\leq k \\cdot d(x', x'')$$\n  với $0 < k < 1$ — mọi cặp điểm được kéo *gần lại* nhau.\n- **Tính chất quan trọng**: mọi contraction mapping đều có duy nhất một **điểm cố định** (fixed point). Bắt đầu từ bất kỳ điểm $c$ nào, lặp $x_{n+1} = T(x_n)$ đều hội tụ về điểm đó.\n- **IFS (Iterated Function Systems)**: tập hợp $N$ contraction mappings $\\{T_1, T_2, \\ldots, T_N\\}$. Ánh xạ tổng hợp:\n$$T(A) = T_1(A) \\cup T_2(A) \\cup \\cdots \\cup T_N(A)$$\n- Fixed point của $T$ trên không gian Hausdorff chính là **attractor** — hình fractal cần vẽ.",
+    "recallPrompt": "Giải thích tại sao attractor của IFS luôn tồn tại và duy nhất — kết quả toán học nào đảm bảo điều này?",
+    "blanks": ["contraction mapping", "fixed point", "attractor"]
+  },
+  {
+    "id": "ifs-algorithms",
+    "title": "IFS — Thuật toán Tất định & Ngẫu nhiên",
+    "content": "- **Thuật toán Tất định (Deterministic)**:\n```\nS = hình ban đầu bất kỳ\nLặp n lần:\n    S = T1(S) ∪ T2(S) ∪ ... ∪ TN(S)\n// S hội tụ về fractal\n```\n- **Thuật toán Ngẫu nhiên (Random / Chaos Game)**:\n```\nP0 = điểm xuất phát bất kỳ\nLặp i từ 0 đến k:\n    Chọn ngẫu nhiên một Ti từ tập IFS\n    Pi+1 = Ti(Pi)\n    Vẽ điểm Pi+1\n// Sau ~10000 bước, hình fractal hiện ra\n```\n- Cả hai đều hội tụ đến cùng một attractor.\n- Thuật toán ngẫu nhiên đơn giản hơn, phù hợp để trực quan hóa nhanh.",
+    "recallPrompt": "So sánh ưu nhược điểm của thuật toán tất định và ngẫu nhiên khi vẽ fractal từ IFS — khi nào nên chọn cái nào?",
+    "blanks": ["tất định", "ngẫu nhiên", "attractor"]
+  },
+  {
+    "id": "lsystem-definition",
+    "title": "L-System — Định nghĩa & Turtle Graphics",
+    "content": "- **L-System (Lindenmayer System)**: hệ thống ngữ pháp hình thức tạo fractal bằng cách **viết lại chuỗi** ký tự.\n- **Cấu trúc L-System** gồm 3 thành phần:\n  1. **Tập ký tự**: $\\{F, +, -, [, ]\\}$\n  2. **Axiom $s_0$**: chuỗi khởi đầu.\n  3. **Production Rules**: quy tắc thay thế ký tự, vd: $F \\to F+F-F$\n- **Turtle Graphics** — con rùa có 3 thuộc tính: vị trí $p$, hướng $\\alpha$, bước $\\Delta d$ và góc $\\Delta\\alpha$:\n\n| Ký tự | Hành động |\n|---|---|\n| $F$ | Tiến $\\Delta d$ |\n| $+$ | Quay trái $\\Delta\\alpha$ |\n| $-$ | Quay phải $\\Delta\\alpha$ |\n| $[$ | Lưu $(p, \\alpha)$ vào stack |\n| $]$ | Khôi phục $(p, \\alpha)$ từ stack |",
+    "recallPrompt": "Giải thích tại sao ký tự `[` và `]` trong L-System dùng stack — ứng dụng nào của cấu trúc cây cần đến cơ chế này?",
+    "blanks": ["L-System", "Axiom", "Turtle Graphics"]
+  },
+  {
+    "id": "lsystem-execution",
+    "title": "L-System — Quá trình Thực thi",
+    "content": "- **Quy trình**:\n  1. Bắt đầu từ axiom $s_0$.\n  2. Lặp $n$ lần: đồng thời áp dụng production rules cho *mọi* ký tự trong chuỗi hiện tại:\n  $$s_0 \\to s_1 \\to s_2 \\to \\cdots \\to s_n$$\n  3. Dùng Turtle Graphics vẽ chuỗi $s_n$.\n- **Ví dụ Koch Snowflake**:\n  - Axiom: $s_0 = F{+}{+}F{+}{+}F$\n  - Rule: $F \\to F{-}F{+}{+}F{-}F$, $\\Delta\\alpha = 60^\\circ$\n- **Ví dụ cây thực vật**:\n  - Axiom: $s_0 = X$\n  - Rules: $F \\to FF$, $X \\to F[+X]F[-X]+X$, $\\Delta\\alpha = 20^\\circ$",
+    "recallPrompt": "Sau 2 bước lặp, chuỗi $s_2$ từ axiom $F$ với rule $F \\to F+F-F$ trông như thế nào? Tính độ dài chuỗi theo $n$.",
+    "blanks": ["production rules", "đồng thời", "$\\Delta\\alpha$"]
+  },
+  {
+    "id": "mandelbrot-definition",
+    "title": "Mandelbrot Set — Định nghĩa",
+    "content": "- **Mandelbrot set**: tập hợp mọi số phức $c$ sao cho dãy $\\{z_n\\}$ **không phân kỳ** ra vô cực, với:\n  - $z_0 = 0 + 0i$\n  - $z_{n+1} = z_n^2 + c$\n- **Điều kiện phân kỳ** (thoát sớm): nếu tồn tại $k$ sao cho $|z_k| > 2$ thì dãy **chắc chắn phân kỳ** → $c \\notin$ Mandelbrot set.\n- **Tại sao ngưỡng 2**: có thể chứng minh rằng nếu $|z| > 2$ thì $|z^2 + c| > |z|$, dãy tăng vô hạn.",
+    "recallPrompt": "Giải thích tại sao ngưỡng $|z_k| > 2$ là điều kiện đủ để kết luận dãy phân kỳ — chứng minh bằng bất đẳng thức tam giác.",
+    "blanks": ["Mandelbrot set", "$z_{n+1} = z_n^2 + c$", "$|z_k| > 2$"]
+  },
+  {
+    "id": "mandelbrot-algorithm",
+    "title": "Mandelbrot Set — Thuật toán Vẽ",
+    "content": "- Với mỗi pixel $(x, y)$ trên màn hình:\n\n```\nc = x + y*i  // ánh xạ pixel → số phức\nz = 0\nN = 100      // số vòng lặp tối đa\nfor i = 0 to N:\n    z = z*z + c\n    if |z| > 2:\n        // phân kỳ: c KHÔNG thuộc Mandelbrot set\n        tô màu theo i (số bước trước khi thoát)\n        break\nif vòng lặp kết thúc và |z| <= 2:\n    // c THUỘC Mandelbrot set\n    tô màu đen\n```\n\n- **Kỹ thuật tô màu**: dùng số vòng lặp $i$ trước khi $|z| > 2$ để tạo gradient màu → hình Mandelbrot đầy màu sắc.\n- Độ phức tạp: $O(W \\times H \\times N)$ với $W, H$ là kích thước ảnh, $N$ là số vòng lặp tối đa.",
+    "recallPrompt": "Tại sao tô màu pixel theo số vòng lặp $i$ trước khi thoát lại tạo ra hình ảnh đẹp? Điều này liên hệ gì đến tốc độ phân kỳ của dãy?",
+    "blanks": ["$z = z^2 + c$", "tô màu đen", "$N = 100$"]
+  }
+]

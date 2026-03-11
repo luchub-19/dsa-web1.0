@@ -1,0 +1,72 @@
+[
+  {
+    "id": "file-types-endianness",
+    "title": "File — Text vs Binary & Endianness",
+    "content": "- **Text file**: dữ liệu mã hoá dạng ký tự (ASCII/Unicode) — con người đọc được.\n- **Binary file**: dữ liệu dạng nhị phân (0s và 1s) — hiệu quả hơn cho dữ liệu số.\n- **Endianness**: thứ tự byte của một word trong bộ nhớ:\n  - **Big-endian**: byte **quan trọng nhất** (MSB) ở địa chỉ **nhỏ nhất**.\n  - **Little-endian**: byte **ít quan trọng nhất** (LSB) ở địa chỉ **nhỏ nhất**.\n- Ví dụ số `0x12345678` tại địa chỉ 100:\n  - Big-endian: `12 34 56 78`\n  - Little-endian: `78 56 34 12`\n- **Quan trọng** khi trao đổi binary file giữa các hệ thống khác nhau.",
+    "recallPrompt": "Nếu bạn đọc một binary file được tạo trên hệ thống big-endian bằng máy little-endian, số nguyên `int` sẽ bị đọc sai như thế nào — giải thích bằng ví dụ cụ thể.",
+    "blanks": ["big-endian", "little-endian", "MSB"]
+  },
+  {
+    "id": "file-alignment-padding",
+    "title": "Data Alignment & Struct Padding",
+    "content": "- **Data alignment**: đặt dữ liệu tại địa chỉ là **bội số** của word size → CPU truy cập nhanh hơn.\n  - `char` (1 byte): 1-byte aligned.\n  - `short` (2 bytes): 2-byte aligned.\n  - `int`, `float` (4 bytes): 4-byte aligned.\n  - `double` (8 bytes): 8-byte aligned.\n- **Struct padding**: trình biên dịch chèn byte rỗng giữa các field để đảm bảo alignment:\n```cpp\nstruct Type {\n    int i;     // 4 bytes\n    double d;  // 8 bytes — cần padding 4 bytes trước nó\n    char c;    // 1 byte + padding 7 bytes sau\n}; // sizeof(Type) = 24, không phải 13!\n```\n- **`#pragma pack(n)`**: ép trình biên dịch dùng alignment $n$ bytes (default = 8).",
+    "recallPrompt": "Tính `sizeof` của struct `{char a; int b; char c;}` không có và có `#pragma pack(1)` — giải thích sự khác biệt.",
+    "blanks": ["padding", "alignment", "#pragma pack"]
+  },
+  {
+    "id": "file-bitfields-fixedwidth",
+    "title": "Bit Fields & Fixed-width Integers",
+    "content": "- **Bit field**: field trong struct chiếm ít hơn một kiểu nguyên — khai báo với `: n`:\n```cpp\nstruct Date {\n    unsigned short nWeekDay  : 3;  // 0..7   (3 bits)\n    unsigned short nMonthDay : 6;  // 0..31  (6 bits)\n    unsigned short nMonth    : 5;  // 0..12  (5 bits)\n    unsigned short nYear     : 8;  // 0..100 (8 bits)\n}; // tổng 22 bits\n```\n- **Fixed-width integers** (C++11, `<cstdint>`) đảm bảo kích thước chính xác trên mọi nền tảng:\n\n| Type | Sign | Bits |\n|---|---|---|\n| `std::int8_t` | signed | 8 |\n| `std::uint16_t` | unsigned | 16 |\n| `std::int32_t` | signed | 32 |\n| `std::int64_t` | signed | 64 |",
+    "recallPrompt": "Tại sao `int` không đảm bảo kích thước 32-bit trên mọi hệ thống — khi nào bắt buộc phải dùng `std::int32_t` thay vì `int`?",
+    "blanks": ["bit field", "std::int32_t", "cstdint"]
+  },
+  {
+    "id": "file-c-operations",
+    "title": "File trong C — fopen, fclose, fprintf, fread/fwrite",
+    "content": "- **Mở file**: `FILE* fopen(filename, mode)` — trả về `NULL` nếu lỗi.\n- **Các mode**: `r` (read), `w` (write/create), `a` (append), `r+`/`w+`/`a+` (read+write), `b` (binary).\n- **Đóng file**: `fclose(FILE *fptr)`.\n- **Text file**: dùng `fprintf` (write) và `fscanf` (read).\n- **Binary file**: dùng `fwrite(data, size, fptr)` và `fread(data, size, fptr)`.\n```cpp\nFILE *fptr = fopen(\"data.txt\", \"r\");\nif (fptr != NULL) {\n    // đọc/ghi...\n    fclose(fptr);\n}\n```\n- **Quan trọng**: luôn kiểm tra `NULL` sau `fopen` và gọi `fclose` khi xong.",
+    "recallPrompt": "Điều gì xảy ra nếu bạn mở một file không tồn tại với mode `r` vs mode `w` — và tại sao quên `fclose` có thể gây mất dữ liệu?",
+    "blanks": ["fopen", "fclose", "fwrite"]
+  },
+  {
+    "id": "file-cpp-stream-types",
+    "title": "C++ File Stream — ifstream, ofstream, fstream",
+    "content": "- **Stream**: luồng dữ liệu — abstraction nhất quán cho đọc/ghi.\n- **3 kiểu stream** trong C++ (`<fstream>`):\n  - `ifstream`: **chỉ đọc** từ file.\n  - `ofstream`: **chỉ ghi** vào file.\n  - `fstream`: **đọc lẫn ghi**.\n- **Mở và đóng**:\n```cpp\nfstream dataFile;\ndataFile.open(\"data.txt\", ios::in | ios::out | ios::trunc);\nif (dataFile.is_open()) {\n    // ...\n    dataFile.close();\n}\n```\n- **Các flag quan trọng**: `ios::in`, `ios::out`, `ios::app` (append), `ios::binary`, `ios::trunc` (xóa nội dung cũ), `ios::ate` (đến cuối file).",
+    "recallPrompt": "Tại sao cần dùng `ios::app` thay vì `ios::out` khi muốn thêm dữ liệu vào cuối file — `ios::out` mặc định làm gì với file đã có nội dung?",
+    "blanks": ["ifstream", "ofstream", "ios::app"]
+  },
+  {
+    "id": "file-cpp-text-readwrite",
+    "title": "C++ Text File — Ghi & Đọc với getline",
+    "content": "- **Ghi text**: dùng toán tử `<<` như với `cout`:\n```cpp\ndataFile.open(\"demo.txt\", ios::out);\ndataFile << \"Jones\\n\";\ndataFile << fixed << setprecision(4) << 17.816392;\ndataFile.close();\n```\n- **Đọc text từng dòng**: dùng `getline(stream, string, delimiter)`:\n```cpp\nstring line;\nfstream nameFile(\"murphy.txt\", ios::in);\ngetline(nameFile, line); // đọc dòng đầu\nwhile (nameFile) {\n    cout << line << endl;\n    getline(nameFile, line);\n}\nnameFile.close();\n```\n- **Vấn đề end-of-line**: UNIX dùng `\\n`, Windows dùng `\\r\\n`, Apple cũ dùng `\\r`.",
+    "recallPrompt": "Tại sao pattern đọc dòng đúng chuẩn gọi `getline` **trước** vòng lặp rồi gọi lại ở **cuối** vòng lặp — pattern nào sẽ xử lý sai dòng cuối nếu làm ngược lại?",
+    "blanks": ["getline", "ios::out", "\\r\\n"]
+  },
+  {
+    "id": "file-stream-error-bits",
+    "title": "Stream Error Bits & Kiểm tra Trạng thái",
+    "content": "- **5 stream bits** cho biết trạng thái của file stream:\n\n| Bit | Ý nghĩa |\n|---|---|\n| `eofbit` | Đã đọc đến cuối file |\n| `failbit` | Thao tác thất bại |\n| `hardfail` | Lỗi không thể phục hồi |\n| `badbit` | Thao tác không hợp lệ |\n| `goodbit` | Tất cả các bit trên = 0 (stream tốt) |\n\n- **Hàm kiểm tra**: `eof()`, `fail()`, `bad()`, `good()` — trả về `true/false`.\n- **Reset bits**: `file.clear()` — xóa tất cả error bits.\n- **Quan trọng**: phải gọi `clear()` trước `seekg/seekp` nếu đã đọc đến EOF.",
+    "recallPrompt": "Giải thích tại sao sau khi đọc hết file (eofbit set), `seekg` không hoạt động nếu không gọi `clear()` trước — bit nào chịu trách nhiệm và tại sao seekg bị block?",
+    "blanks": ["eofbit", "goodbit", "clear()"]
+  },
+  {
+    "id": "file-cpp-binary-readwrite",
+    "title": "C++ Binary File — write() & read() với reinterpret_cast",
+    "content": "- **Ghi binary**: `fileObject.write(address, size)` — `address` phải là `char*`.\n- **Đọc binary**: `fileObject.read(address, size)` — lưu vào vùng nhớ tại `address`.\n- **Cast sang `char*`**: dùng `(char*)` hoặc `reinterpret_cast<char*>`:\n```cpp\nint numbersOut[10] = {1,2,3,4,5,6,7,8,9,10};\nint numbersIn[10];\n\nfstream file(\"numbers.dat\", ios::out | ios::binary);\nfile.write((char*)numbersOut, sizeof(numbersOut));\nfile.close();\n\nfile.open(\"numbers.dat\", ios::in | ios::binary);\nfile.read((char*)numbersIn, sizeof(numbersIn));\nfile.close();\n```\n- **Lưu struct**: `file.write((char*)&person, sizeof(person))` — ghi toàn bộ struct kể cả padding.",
+    "recallPrompt": "Tại sao `write()` yêu cầu `char*` thay vì `void*` hay kiểu cụ thể — và tại sao sizeof là argument thứ hai thay vì tự động tính?",
+    "blanks": ["write", "read", "sizeof"]
+  },
+  {
+    "id": "file-random-access",
+    "title": "Random Access File — seekg, seekp, tellg, tellp",
+    "content": "- **Sequential access**: đọc/ghi theo thứ tự từ đầu đến cuối.\n- **Random access**: nhảy đến vị trí bất kỳ trong file — như mảng.\n- **seekp** (write position) và **seekg** (read position):\n```cpp\nfile.seekg(offset, mode);\nfile.seekp(offset, mode);\n```\n- **3 mode flag**:\n  - `ios::beg` — offset từ **đầu** file.\n  - `ios::end` — offset từ **cuối** file.\n  - `ios::cur` — offset từ **vị trí hiện tại**.\n- **tellg / tellp**: lấy vị trí đọc/ghi hiện tại:\n```cpp\nstreampos pos = inFile.tellg();\n```\n- **Ứng dụng**: cập nhật record thứ $n$ → `seekp(n * sizeof(Record), ios::beg)`.",
+    "recallPrompt": "Viết biểu thức `seekg` để đọc record thứ 5 (0-indexed) từ binary file chứa struct `Info` có `sizeof(Info) = 170` — offset là bao nhiêu và dùng mode nào?",
+    "blanks": ["seekg", "seekp", "ios::beg"]
+  },
+  {
+    "id": "file-struct-binary-records",
+    "title": "Binary Records — Lưu & Đọc Struct",
+    "content": "- **Pattern lưu record** bằng struct vào binary file:\n```cpp\nstruct Info {\n    char name[51];     // 51 bytes\n    int age;           // 4 bytes\n    char address[51];  // 51 bytes\n    char phone[14];    // 14 bytes\n};\n// Ghi:\nfstream f(\"people.dat\", ios::out | ios::binary);\nf.write((char*)&person, sizeof(person));\n// Đọc:\nf.open(\"people.dat\", ios::in | ios::binary);\nf.read((char*)&person, sizeof(person));\nwhile (!f.eof()) {\n    // xử lý person...\n    f.read((char*)&person, sizeof(person));\n}\n```\n- **File format design**: document rõ tên field, kích thước bytes, và kiểu dữ liệu.\n- **Lưu ý padding**: `sizeof(struct)` bao gồm cả padding bytes — phải nhất quán giữa ghi và đọc.",
+    "recallPrompt": "Nếu bạn thay đổi cấu trúc struct `Info` (thêm field) sau khi đã ghi data — tại sao đọc lại file cũ sẽ cho kết quả sai và cách fix là gì?",
+    "blanks": ["sizeof(person)", "eof()", "padding"]
+  }
+]

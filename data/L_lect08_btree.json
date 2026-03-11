@@ -1,0 +1,65 @@
+[
+  {
+    "id": "btree-motivation",
+    "title": "B-tree — Tại sao cần External Memory Search Tree?",
+    "content": "- **Vấn đề**: dataset lớn (vd: bank > 1 TB/ngày) không vừa RAM → phải dùng **secondary storage** (HDD, SSD).\n- **File system model**:\n  - **Page**: khối dữ liệu liên tiếp (vd: 4096 bytes).\n  - **Probe**: lần đầu tiên truy cập một page từ đĩa vào RAM.\n  - **Tính chất quan trọng**: thời gian probe **rất lớn** so với xử lý data trong RAM.\n- **Cost metric**: số probes (không phải số phép so sánh như với in-memory trees).\n- **Mục tiêu**: truy cập dữ liệu với **số probes tối thiểu**.\n- **Tối ưu**: luôn giữ root page trong RAM → tiết kiệm 1 probe mỗi lần.",
+    "recallPrompt": "Tại sao metric 'số probes' quan trọng hơn 'số phép so sánh' khi thiết kế cấu trúc dữ liệu cho external storage?",
+    "blanks": ["probe", "secondary storage", "số probes"]
+  },
+  {
+    "id": "btree-definition-properties",
+    "title": "B-tree Order M — Định nghĩa & Tính chất",
+    "content": "- **B-tree order $M$** ($M \\geq 3$, Bayer & McCreight): M-ary tree với:\n  1. Root: là leaf, hoặc có từ **2 đến $M$** children.\n  2. Mọi non-leaf node (trừ root): có từ $\\lfloor\\frac{M+1}{2}\\rfloor$ đến $M$ children.\n  3. **Minimum degree**: $m = \\lfloor\\frac{M+1}{2}\\rfloor$.\n  4. **Tất cả leaf ở cùng một level** $h$ — balanced hoàn toàn.\n  5. Mọi node lưu keys để hướng dẫn tìm kiếm.\n- **Ví dụ**: 2-3 tree ($M=3$), 2-3-4 tree ($M=4$).\n- **Height**: $h \\leq \\log_m \\frac{n+1}{2}$ với $n$ keys.",
+    "recallPrompt": "Tại sao B-tree yêu cầu minimum $\\lfloor(M+1)/2\\rfloor$ children (không phải 1 hay 2) — điều này ảnh hưởng thế nào đến height và số probes?",
+    "blanks": ["minimum degree $m$", "cùng một level", "$h \\leq \\log_m \\frac{n+1}{2}$"]
+  },
+  {
+    "id": "btree-node-structure",
+    "title": "B-tree — Cấu trúc Node & Tổ chức Keys",
+    "content": "- Mỗi node $x$ chứa:\n  - `x.n`: số keys hiện tại.\n  - `x.key_1 ≤ x.key_2 ≤ ... ≤ x.key_{x.n}`: mảng keys tăng dần.\n  - `x.leaf`: boolean — true nếu là leaf.\n  - (Internal node) `x.c_1, ..., x.c_{x.n+1}`: **$x.n + 1$ con trỏ** đến children.\n- **BST ordering** tổng quát:\n$$k_1 \\leq x.key_1 \\leq k_2 \\leq x.key_2 \\leq \\ldots \\leq x.key_{x.n} \\leq k_{x.n+1}$$\n  trong đó $k_i$ là key bất kỳ trong subtree $x.c_i$.\n- **Tính chất**: node có $n$ keys có đúng $n+1$ children.",
+    "recallPrompt": "Giải thích tại sao một internal node với $n$ keys cần đúng $n+1$ con trỏ children — vẽ ví dụ node với 3 keys và 4 children.",
+    "blanks": ["$x.n + 1$ con trỏ", "$k_1 \\leq x.key_1 \\leq k_2$", "x.leaf"]
+  },
+  {
+    "id": "btree-search",
+    "title": "B-tree — Thuật toán Search",
+    "content": "- **Search** tìm key $k$ bắt đầu từ node $x$:\n```\nfunction B-Tree-Search(x, k):\n    if x.leaf: return null\n    i ← 1\n    while i ≤ x.n and k > x.key_i:\n        i ← i + 1\n    if i ≤ x.n and k == x.key_i:\n        return (x, i)           // search hit\n    else:\n        Disk-Read(x.c_i)        // probe!\n        return B-Tree-Search(x.c_i, k)\n```\n- **Mỗi level** trong cây = 1 probe (Disk-Read).\n- Số probes tối đa = height $h \\leq \\log_m \\frac{n+1}{2}$.\n- **Trong thực tế**: $\\leq 4$ probes với $m$ đủ lớn — rất hiệu quả.\n- **Convention**: root luôn trong RAM → không cần Disk-Read cho root.",
+    "recallPrompt": "So sánh B-tree search với BST binary search — tại sao dù mỗi node B-tree phải linear scan qua $M$ keys nhưng vẫn ít probes hơn?",
+    "blanks": ["Disk-Read", "4 probes", "$\\log_m \\frac{n+1}{2}$"]
+  },
+  {
+    "id": "btree-split-insert",
+    "title": "B-tree — Split Node & Insert (Single-pass)",
+    "content": "- **Chiến lược single-pass**: split các node đầy **proactively** khi đi xuống — không cần back up.\n- **Split node** $y = x.c_i$ (khi $y.n = 2m-1$): tách thành 2 node, đẩy **median key** $y.key_m$ lên parent $x$:\n  - Node trái $y$: giữ $m-1$ keys bên trái.\n  - Node phải $z$ (mới): nhận $m-1$ keys bên phải.\n  - $x$ nhận thêm $y.key_m$ và pointer đến $z$.\n- **Insert** tổng quát:\n```\nfunction B-Tree-Insert(T, k):\n    if root.n == 2m-1:     // root đầy → split root trước\n        tạo root mới s, c_1 = old root\n        B-Tree-Split-Child(s, 1)\n        B-Tree-Insert-Nonfull(s, k)\n    else:\n        B-Tree-Insert-Nonfull(root, k)\n```\n- Mỗi insert: $O(\\log_m n)$ probes.",
+    "recallPrompt": "Tại sao khi root đầy, thuật toán tạo một root mới rỗng rồi split old root thay vì split root tại chỗ — điều gì xảy ra với height cây?",
+    "blanks": ["median key", "split root", "$O(\\log_m n)$ probes"]
+  },
+  {
+    "id": "btree-bottomup-insert",
+    "title": "B-tree — Bottom-up Insertion",
+    "content": "- **Bottom-up approach** (alternative): insert bắt đầu tại leaf.\n- **Overflow handling**: nếu node có quá nhiều keys ($> M-1$):\n  1. Chọn **median key**.\n  2. Keys nhỏ hơn → **left node** mới. Keys lớn hơn → **right node** mới.\n  3. Đẩy median lên **parent** — có thể gây overflow lan lên.\n  4. Nếu root bị overflow → tạo **root mới** chứa median.\n- **Invariant**: chỉ leaf là điểm insert thực sự; split propagate từ dưới lên.\n- **So sánh với top-down**: top-down ít probes hơn (single pass); bottom-up đơn giản hơn về conceptually.",
+    "recallPrompt": "Giải thích sự khác nhau giữa top-down (single-pass) và bottom-up insertion trong B-tree — trường hợp nào cần nhiều Disk-Write hơn?",
+    "blanks": ["median key", "overflow", "root mới"]
+  },
+  {
+    "id": "btree-deletion",
+    "title": "B-tree — Deletion: Leaf, Internal & Rebalancing",
+    "content": "- **Xóa từ leaf**: xóa trực tiếp. Nếu **underflow** (< $m-1$ keys) → rebalance.\n- **Xóa từ internal node**: chọn **separator mới** (max của left subtree hoặc min của right subtree), thay thế key bị xóa, rồi xóa separator từ leaf.\n- **Rebalancing sau underflow** (3 cases theo thứ tự ưu tiên):\n  1. **Right sibling có thừa keys**: rotate left (lấy key từ parent, đẩy min của right sibling lên parent).\n  2. **Left sibling có thừa keys**: rotate right (đối xứng).\n  3. **Cả hai sibling đều minimum**: **merge** node thiếu + separator từ parent + một sibling → 1 node mới (parent mất 1 key, có thể cascade underflow lên).\n- Merge có thể propagate đến root → nếu root rỗng, xóa root → height giảm 1.",
+    "recallPrompt": "Tại sao merge có thể lan lên tận root nhưng split cũng có thể lan lên root — điều gì xảy ra với height trong mỗi trường hợp?",
+    "blanks": ["underflow", "merge", "separator"]
+  },
+  {
+    "id": "btree-indexing",
+    "title": "B-tree Ứng dụng — Database Indexing",
+    "content": "- **Index**: cấu trúc dữ liệu để retrieve records nhanh dựa trên attribute.\n- **3 loại index**:\n  - **Primary index**: theo primary key.\n  - **Secondary index**: theo candidate key.\n  - **Clustering index**: theo non-key attribute.\n- **Dense index**: mỗi search key value có một index record → tìm nhanh, tốn nhiều space.\n- **Sparse index**: chỉ một số search key values có index record → ít space hơn, kém chính xác hơn.\n- **Multilevel index**: chia index thành nhiều cấp — top level đủ nhỏ để vào RAM.\n- B-tree là nền tảng cho multilevel indexing trong DBMS.",
+    "recallPrompt": "Giải thích tại sao sparse index tiết kiệm space hơn dense index nhưng vẫn hiệu quả — điều gì đảm bảo sparse index vẫn tìm được record đúng?",
+    "blanks": ["dense index", "sparse index", "multilevel index"]
+  },
+  {
+    "id": "btree-variants",
+    "title": "B+ Tree & B* Tree — Biến thể và Ứng dụng Thực tế",
+    "content": "- **B+ tree** (phổ biến nhất trong DBMS):\n  - Internal nodes: **chỉ chứa keys** (không có data/value).\n  - Leaf nodes: chứa **cả keys lẫn actual records**.\n  - Leaf nodes được **liên kết với nhau** (linked list) → range query $O(1)$ sau khi tìm điểm đầu.\n  - **Range query**: tìm leaf đầu tiên → sequential traversal qua linked list.\n- **B* tree**: đảm bảo non-root nodes **ít nhất 2/3 đầy** (thay vì 1/2 ở B-tree thông thường) → cây thấp hơn, ít probes hơn.\n- **Ứng dụng thực tế**:\n  - File systems: NTFS (Windows), HFS+ (Mac), Ext3/XFS (Linux).\n  - Databases: Oracle, DB2, PostgreSQL, MySQL.",
+    "recallPrompt": "Tại sao B+ tree phù hợp hơn B-tree cho database range queries — cấu trúc nào trong B+ tree làm cho `WHERE age BETWEEN 20 AND 30` hiệu quả?",
+    "blanks": ["B+ tree", "linked list", "range query"]
+  }
+]   

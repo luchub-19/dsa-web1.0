@@ -1,0 +1,79 @@
+[
+  {
+    "id": "balanced-tree-definition",
+    "title": "Balanced Tree — Các Định nghĩa Cân bằng",
+    "content": "- **Balanced tree** (node-balanced): $|size(LeftSubtree) - size(RightSubtree)| \\leq 1$ tại mọi node.\n- **Height-balanced**: $|height(Left) - height(Right)| \\leq 1$ tại mọi node.\n- **Null-path-length balanced**: so sánh null-path-length của hai subtree.\n- **Weight-balanced**: so sánh số null subtree của hai phía.\n- **Complete binary tree** là height-balanced.\n- **Mục tiêu**: đảm bảo search/insert/delete $O(\\log n)$ trong mọi trường hợp, không chỉ trung bình.",
+    "recallPrompt": "Phân biệt node-balanced và height-balanced — cho ví dụ cây thỏa mãn một điều kiện nhưng vi phạm điều kiện kia.",
+    "blanks": ["height-balanced", "$|height(Left) - height(Right)| \\leq 1$", "complete binary tree"]
+  },
+  {
+    "id": "balanced-tree-rotations",
+    "title": "Tree Rotations — Right & Left Rotation",
+    "content": "- **Rotation**: hoán đổi vai trò root và một child mà **vẫn bảo toàn BST ordering**.\n- **Right rotation** (root và left child):\n  - Left child $x$ trở thành root mới.\n  - Right subtree của $x$ trở thành left subtree của old root.\n```cpp\nvoid rightRotate(link& h) {\n    link x = h->left;\n    h->left = x->right;\n    x->right = h;\n    h = x;\n}\n```\n- **Left rotation** (root và right child) — đối xứng:\n```cpp\nvoid leftRotate(link& h) {\n    link x = h->right;\n    h->right = x->left;\n    x->left = h;\n    h = x;\n}\n```\n- Cả hai đều $O(1)$ — chỉ thay đổi pointer, không di chuyển data.",
+    "recallPrompt": "Sau khi right rotate tại node 15 (với left child là 10), vẽ cây kết quả và chứng minh BST property vẫn được bảo toàn.",
+    "blanks": ["rightRotate", "leftRotate", "$O(1)$"]
+  },
+  {
+    "id": "balanced-dsw-algorithm",
+    "title": "DSW Algorithm — Rebalancing Toàn cây",
+    "content": "- **DSW** (Day-Stout-Warren): rebalancing BST bất kỳ thành perfectly balanced tree.\n- **Hai bước**:\n  1. **CreateBackbone**: biến BST thành 'vine' (linked-list-like tree) bằng right rotations.\n  2. **CreateCompleteTree**: biến vine thành perfect tree bằng left rotations.\n```\nfunction CreateBackbone(root):\n    p ← root\n    while p ≠ null:\n        if p has left child:\n            make right rotation at p\n        else:\n            p ← p->right\n\nfunction CreateCompleteTree(root):\n    n ← number of nodes\n    m ← 2^(floor(log2(n+1))) - 1\n    make n-m left rotations from top\n    while m > 1:\n        m ← m/2\n        make m left rotations from top\n```\n- **Độ phức tạp**: $O(n)$ thời gian, $O(1)$ không gian phụ.",
+    "recallPrompt": "Giải thích tại sao bước CreateBackbone dùng right rotation (không phải left) để tạo vine — và vine trông như thế nào về mặt cấu trúc?",
+    "blanks": ["CreateBackbone", "CreateCompleteTree", "$O(n)$"]
+  },
+  {
+    "id": "avl-tree-definition",
+    "title": "AVL Tree — Định nghĩa & Height Worst Case",
+    "content": "- **AVL tree** (Adelson-Velskii & Landis, 1962): BST height-balanced tại mọi node:\n$$\\forall p: |height(Left_p) - height(Right_p)| \\leq 1$$\n- **Height worst case**: gọi $F_h$ là AVL tree tối thiểu nodes ở height $h$:\n$$|F_h| = |F_{h-1}| + |F_{h-2}| + 1$$\n  với $|F_0| = 1$, $|F_1| = 2$ (giống Fibonacci).\n- **Kết quả**: height AVL tree worst case:\n$$h \\leq 1.44 \\log_2 N$$\n- Nghĩa là AVL tree **luôn** cao tối đa $1.44 \\log_2 N$ — đảm bảo search $O(\\log N)$.",
+    "recallPrompt": "Tại sao recurrence $|F_h| = |F_{h-1}| + |F_{h-2}| + 1$ giống Fibonacci — và điều này dẫn đến height worst case $1.44\\log_2 N$ như thế nào?",
+    "blanks": ["$|F_h| = |F_{h-1}| + |F_{h-2}| + 1$", "$1.44 \\log_2 N$", "height-balanced"]
+  },
+  {
+    "id": "avl-rebalancing-cases",
+    "title": "AVL — 4 Trường hợp Mất Cân bằng & Cách Sửa",
+    "content": "- Sau insert/delete, kiểm tra balance factor. Có 4 trường hợp mất cân bằng:\n- **LL imbalance**: node mới vào left subtree của left child → **1 right rotation** tại node mất cân bằng.\n- **RR imbalance**: node mới vào right subtree của right child → **1 left rotation**.\n- **LR imbalance**: node mới vào right subtree của left child → **left rotation** tại left child, rồi **right rotation** tại node mất cân bằng.\n- **RL imbalance**: node mới vào left subtree của right child → **right rotation** tại right child, rồi **left rotation**.\n- LL và RR: **single rotation**. LR và RL: **double rotation**.\n- **Sau mỗi insert/delete**: đi từ node mới lên root, kiểm tra và sửa mọi vi phạm.",
+    "recallPrompt": "Giải thích tại sao LR imbalance cần double rotation thay vì single rotation — vẽ cây trước và sau từng rotation để minh họa.",
+    "blanks": ["LL imbalance", "LR imbalance", "double rotation"]
+  },
+  {
+    "id": "avl-insert-algorithm",
+    "title": "AVL — Thuật toán Insert",
+    "content": "- Sau khi insert bình thường như BST, **rebalance nếu cần** khi đệ quy quay lên:\n```\nfunction Insert(root, key):\n    if root == null:\n        root ← new NODE(key)\n        return\n    if root.key == key: return\n    if root.key < key: Insert(root.right, key)\n    if root.key > key: Insert(root.left, key)\n    if unbalanced at root:\n        rebalance at root  // 1 trong 4 cases\n```\n- **Tính chất quan trọng**: mỗi insert chỉ cần tối đa **1 rebalancing** (đối với insert, không phải delete).\n- Độ phức tạp insert: $O(\\log N)$ — tìm vị trí $O(\\log N)$ + rebalance $O(1)$.",
+    "recallPrompt": "Tại sao insert vào AVL tree chỉ cần tối đa 1 lần rebalancing — trong khi delete có thể cần rebalancing nhiều lần trên đường lên root?",
+    "blanks": ["rebalance", "$O(\\log N)$", "unbalanced"]
+  },
+  {
+    "id": "redblack-tree-definition",
+    "title": "Red-Black Tree — 4 Tính chất Bắt buộc",
+    "content": "- **Red-Black (RB) tree**: BST mỗi node được tô màu đỏ hoặc đen, thỏa mãn **4 điều kiện**:\n  1. Mỗi node là **red** hoặc **black**.\n  2. Root là **black**.\n  3. Nếu node là **red**, cả hai con phải là **black** (không có 2 red liền nhau).\n  4. Mọi path từ một node đến descendant null link có **cùng số black nodes** (black-height).\n- **Height worst case**: $h \\leq 2\\log_2 N$.\n- **Left-Leaning RB (LLRB)**: biến thể chỉ cho phép **left red child** — đơn giản hoá cài đặt.\n- **AA tree**: variant khác của LLRB.",
+    "recallPrompt": "Giải thích tại sao điều kiện 4 (same black-height trên mọi path) là tiêu chí cân bằng của RB tree — nó tương đương với điều kiện gì về height?",
+    "blanks": ["black-height", "$2\\log_2 N$", "Left-Leaning RB"]
+  },
+  {
+    "id": "redblack-operations",
+    "title": "Red-Black Tree — 3 Thao tác Cơ bản",
+    "content": "- **3 operations** để duy trì RB properties:\n  - **Case 1 — Left rotation**: khi right child là red và left child là black → rotate left để orient sang trái.\n  - **Case 2 — Right rotation**: khi left child là red và left-left grandchild là red → rotate right.\n  - **Case 3 — Color flip**: khi cả hai con đều red → flip colors (đổi màu cả 3 node: parent và 2 con).\n- **Insert LLRB**:\n```\nif IsRed(root.right) and not IsRed(root.left): RotateLeft(root)\nif IsRed(root.left) and IsRed(root.left.left): RotateRight(root)\nif IsRed(root.left) and IsRed(root.right): FlipColors(root)\n```\n- Thứ tự kiểm tra 3 cases **phải đúng** để đảm bảo không phá vỡ property đã sửa.",
+    "recallPrompt": "Tại sao color flip (Case 3) tương đương với 'đẩy' một bit lên parent — điều này liên hệ gì đến 2-3 tree hay B-tree?",
+    "blanks": ["Left rotation", "Color flip", "FlipColors"]
+  },
+  {
+    "id": "optimal-bst-static",
+    "title": "Optimal BST — Static: DP với Tần suất Truy cập",
+    "content": "- **Bài toán**: Cho $n$ keys $k_1 < k_2 < \\ldots < k_n$ với tần suất $f_1, f_2, \\ldots, f_n$ — xây BST sao cho **expected search cost nhỏ nhất**.\n- **Chi phí tìm kiếm** $k_i$: $Cost(k_i) = Depth(k_i)$ (root có depth 1).\n- **Expected cost**:\n$$ExpectedCost(l,r) = \\sum_{i=l}^{r} Cost(k_i) \\cdot f_i$$\n- **Công thức DP** (khi root là $k_m$):\n$$OptCost(l,m,r) = \\sum_{i=l}^{r} f_i + OptCost(l,m{-}1) + OptCost(m{+}1,r)$$\n$$OptCost(l,r) = \\min_{m \\in [l,r]} \\{OptCost(l,m,r)\\}$$\n- Độ phức tạp: $O(n^3)$ naive, $O(n^2)$ với Knuth's optimization.",
+    "recallPrompt": "Giải thích tại sao key có tần suất cao nhất không nhất thiết phải là root của optimal BST — cho ví dụ phản chứng.",
+    "blanks": ["$ExpectedCost(l,r)$", "$O(n^3)$", "optimal BST"]
+  },
+  {
+    "id": "splay-tree",
+    "title": "Splay Tree — Dynamic Optimal BST",
+    "content": "- **Splay tree**: BST với property bổ sung — **recently accessed elements nhanh hơn** để access lại.\n- **Splaying**: mỗi khi access node $x$, di chuyển $x$ lên root bằng chuỗi **splay steps**.\n- **3 loại splay step** (mỗi loại có 2 biến thể đối xứng):\n  - **Zig**: $x$ là con của root → 1 rotation đơn.\n  - **Zig-zig**: $x$ và parent cùng phía (cả hai left hoặc cả hai right) → 2 rotations cùng chiều.\n  - **Zig-zag**: $x$ và parent khác phía → 2 rotations khác chiều.\n- **Amortized cost**: $O(\\log N)$ per operation — không đảm bảo worst case mỗi op, nhưng **tổng** $m$ ops tốt hơn BST.\n- **Tự tối ưu**: không cần lưu balance info — overhead thấp hơn AVL/RB.",
+    "recallPrompt": "Giải thích tại sao zig-zig (2 rotations cùng chiều) hiệu quả hơn 2 zig rotations liên tiếp — điều gì xảy ra với amortized cost nếu dùng 2 zig?",
+    "blanks": ["splaying", "zig-zig", "zig-zag"]
+  },
+  {
+    "id": "balanced-bst-comparison",
+    "title": "So sánh AVL, RB Tree & BST — Hiệu năng",
+    "content": "- Tổng hợp độ phức tạp ($c = 1.39$, $c_a = 1.44$, $c_r = 2.0$):\n\n| Implementation | Search worst | Search avg | Insert avg | Ordered? |\n|---|---|---|---|---|\n| BST | $O(N)$ | $c\\log_2 N$ | $c\\log_2 N$ | ✓ |\n| AVL | $1.44\\log_2 N$ | $\\log_2 N$ | — | ✓ |\n| Red-Black | $2\\log_2 N$ | $\\log_2 N$ | — | ✓ |\n\n- **AVL** nghiêm ngặt hơn → **height thấp hơn** → search nhanh hơn trong thực tế.\n- **RB tree** cho phép cân bằng lỏng hơn → **insert/delete nhanh hơn** (ít rotations hơn).\n- **RB tree** được dùng trong `std::map`, `std::set` (C++ STL), Linux kernel.\n- **AVL tree** phù hợp khi **read nhiều hơn write**.",
+    "recallPrompt": "Tại sao C++ STL chọn Red-Black tree thay vì AVL tree cho std::map — trade-off nào quyết định lựa chọn này trong thực tế?",
+    "blanks": ["AVL", "Red-Black", "$2\\log_2 N$"]
+  }
+]
