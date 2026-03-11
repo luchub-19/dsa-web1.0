@@ -47,7 +47,13 @@ export default function ChunkViewer({
       </header>
 
       <h2 className="text-2xl font-bold leading-tight text-slate-100 tracking-tight">
-        {chunk.title || chunk.concept}
+        <ReactMarkdown 
+          remarkPlugins={[remarkMath]} 
+          rehypePlugins={[rehypeKatex]}
+          components={{ p: 'span' }}
+        >
+          {chunk.title || chunk.concept || ''}
+        </ReactMarkdown>
       </h2>
 
       <section className="theory-body prose-custom text-slate-300 leading-relaxed text-sm space-y-3 whitespace-pre-wrap">
@@ -69,9 +75,15 @@ export default function ChunkViewer({
         <p className="text-xs font-mono text-amber-400/70 uppercase tracking-widest mb-1">
           Feynman / Active Recall
         </p>
-        <p className="text-sm text-amber-100/80 leading-relaxed font-semibold">
-          {chunk.recallPrompt || chunk.active_recall_q}
-        </p>
+        <div className="text-sm text-amber-100/80 leading-relaxed font-semibold">
+          <ReactMarkdown 
+            remarkPlugins={[remarkMath]} 
+            rehypePlugins={[rehypeKatex]}
+            components={{ p: 'span' }}
+          >
+            {chunk.recallPrompt || chunk.active_recall_q || ''}
+          </ReactMarkdown>
+        </div>
       </aside>
     </article>
   );
