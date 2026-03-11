@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useCallback, useId } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
 
 const MIN_CHARS = 50;
 
@@ -84,7 +88,15 @@ export default function FeynmanInput({
           <p className="text-xs font-mono text-violet-400/70 uppercase tracking-widest mb-1">
             Feynman Technique
           </p>
-          <p className="text-sm text-slate-200 leading-relaxed">{prompt}</p>
+          <div className="text-sm text-slate-200 leading-relaxed">
+            <ReactMarkdown
+              remarkPlugins={[remarkMath, remarkGfm]}
+              rehypePlugins={[rehypeKatex]}
+              components={{ p: 'span' }}
+            >
+              {prompt}
+            </ReactMarkdown>
+          </div>
         </div>
       </div>
 
