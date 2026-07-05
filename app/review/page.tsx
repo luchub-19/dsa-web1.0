@@ -1,17 +1,34 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import Link from 'next/link';
 import ActiveRecallBlock from '../../components/ActiveRecallBlock';
 import { useSpacedRepetition } from '../../hooks/useSpacedRepetition';
 import type { SM2Grade } from '../../types/spacedRepetition';
 import type { Chunk } from '../../types/curriculum';
-import allChunksRaw from '../../data/linkedlists.json';
+import { normalizeChunks } from '../../types/curriculum';
+import { sanitizeHtml } from '../../lib/sanitizeHtml';
+import { dsaCurriculum } from '../../data/curriculum';
 
 // ─── Data layer ────────────────────────────────────────────────────────────────
+//
+// FIX QUAN TRỌNG: bản gốc chỉ `import allChunksRaw from '../../data/linkedlists.json'`
+// — nghĩa là CHUNK_MAP chỉ chứa chunk của đúng 1 chương (Linked Lists). Học
+// sinh học xong bất kỳ chương nào khác (ví dụ "Sắp xếp", "Cây nhị phân") sẽ
+// có thẻ SM-2 được `seedChunks()` ghi vào localStorage và tính là "đến hạn"
+// (dueToday), nhưng khi vào trang /review, dòng
+// `dueToday.filter((id) => CHUNK_MAP.has(id))` sẽ ÂM THẦM LOẠI BỎ toàn bộ
+// thẻ đó vì CHUNK_MAP không hề biết tới chúng — thẻ biến mất khỏi hàng đợi
+// ôn tập, không có thông báo lỗi nào. Học sinh sẽ tưởng "không có gì để ôn"
+// trong khi thực ra có, chỉ là bị lọc nhầm.
+//
+// SỬA: build CHUNK_MAP từ TẤT CẢ 15 chương trong dsaCurriculum, chuẩn hóa
+// qua normalizeChunks() để xử lý đồng thời cả 2 schema (xem types/curriculum.ts).
 
-const ALL_CHUNKS = allChunksRaw as Chunk[];
-const CHUNK_MAP  = new Map(ALL_CHUNKS.map((c) => [c.id, c]));
+const ALL_CHUNKS: Chunk[] = dsaCurriculum.flatMap((chapter) =>
+  normalizeChunks(chapter.data)
+);
+const CHUNK_MAP = new Map(ALL_CHUNKS.map((c) => [c.id, c]));
 
 // ─── SM-2 grade metadata ───────────────────────────────────────────────────────
 
@@ -34,7 +51,6 @@ function formatDate(iso: string): string {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-/** Empty-queue screen */
 function AllDoneScreen() {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
@@ -64,7 +80,6 @@ function AllDoneScreen() {
   );
 }
 
-/** Chunk has no code_snippet — show a "read only" card with the concept */
 function ReadOnlyCard({
   chunk,
   onDone,
@@ -78,10 +93,16 @@ function ReadOnlyCard({
         <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest mb-2">
           Lý thuyết
         </p>
-        <div
-          className="theory-inline text-sm text-slate-300 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: chunk.theory_html }}
-        />
+        {chunk.theoryFormat === 'html' ? (
+          <div
+            className="theory-inline text-sm text-slate-300 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(chunk.theory) }}
+          />
+        ) : (
+          <div className="theory-inline text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+            {chunk.theory}
+          </div>
+        )}
       </div>
 
       {chunk.active_recall_q && (
@@ -109,7 +130,6 @@ function ReadOnlyCard({
   );
 }
 
-/** SM-2 self-rating panel shown after completing a card */
 function GradePanel({
   onCommit,
 }: {
@@ -124,7 +144,7 @@ function GradePanel({
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {([5, 4, 3, 2, 1, 0] as SM2Grade[]).map((g) => {
-          const m   = GRADE_META[g];
+          const m = GRADE_META[g];
           const sel = pending === g;
           return (
             <button
@@ -178,74 +198,123 @@ function GradePanel({
 
 type ReviewPhase = 'recall' | 'grading' | 'result';
 
+// ─── Reducer ────────────────────────────────────────────────────────────────────
+//
+// FIX: trước đây dùng 4 useState riêng lẻ (queue, queueReady, queueIndex,
+// phase, lastGrade, sessionDone) và cập nhật chúng trực tiếp bên trong
+// useEffect. ESLint (react-hooks/set-state-in-effect — quy tắc mới đi kèm
+// React 19 / Next 16) coi đây là lỗi: "Calling setState synchronously
+// within an effect can trigger cascading renders". Gộp toàn bộ state liên
+// quan vào 1 useReducer — dispatch() không bị quy tắc này gắn cờ (đúng
+// pattern mà chính codebase đã dùng ở useSpacedRepetition.ts và
+// WhiteboardExam.tsx), đồng thời code cũng rõ ràng hơn: mọi thay đổi trạng
+// thái đi qua đúng 1 chỗ (reviewReducer).
+
+interface ReviewState {
+  status: 'loading' | 'active' | 'done';
+  queue: string[];
+  queueIndex: number;
+  phase: ReviewPhase;
+  lastGrade: SM2Grade | null;
+}
+
+type ReviewAction =
+  | { type: 'HYDRATE_QUEUE'; queue: string[] }
+  | { type: 'COMPLETE_RECALL' }
+  | { type: 'COMMIT_GRADE'; grade: SM2Grade }
+  | { type: 'NEXT' };
+
+const initialReviewState: ReviewState = {
+  status: 'loading',
+  queue: [],
+  queueIndex: 0,
+  phase: 'recall',
+  lastGrade: null,
+};
+
+function reviewReducer(state: ReviewState, action: ReviewAction): ReviewState {
+  switch (action.type) {
+    case 'HYDRATE_QUEUE':
+      if (state.status !== 'loading') return state; // chỉ hydrate 1 lần
+      return { ...state, status: 'active', queue: action.queue };
+
+    case 'COMPLETE_RECALL':
+      return { ...state, phase: 'grading' };
+
+    case 'COMMIT_GRADE':
+      return { ...state, phase: 'result', lastGrade: action.grade };
+
+    case 'NEXT': {
+      const nextIndex = state.queueIndex + 1;
+      if (nextIndex >= state.queue.length) {
+        return { ...state, status: 'done' };
+      }
+      return { ...state, queueIndex: nextIndex, phase: 'recall', lastGrade: null };
+    }
+
+    default:
+      return state;
+  }
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ReviewPage() {
   const { dueToday, recordReview, getCard, isLoading } = useSpacedRepetition();
 
-  // Local queue — snapshot of dueToday at mount, never changes mid-session
-  const [queue, setQueue] = useState<string[]>([]);
-  const [queueReady, setQueueReady] = useState(false);
+  const [state, dispatch] = useReducer(reviewReducer, initialReviewState);
+  const { queue, queueIndex, phase, lastGrade } = state;
 
+  // Hydrate queue đúng 1 lần khi useSpacedRepetition đọc xong localStorage.
   useEffect(() => {
-    if (!isLoading && !queueReady) {
-      // Filter queue to IDs that actually exist in our data files
+    if (!isLoading && state.status === 'loading') {
       const valid = dueToday.filter((id) => CHUNK_MAP.has(id));
-      setQueue(valid);
-      setQueueReady(true);
+      dispatch({ type: 'HYDRATE_QUEUE', queue: valid });
     }
-  }, [isLoading, dueToday, queueReady]);
-
-  const [queueIndex, setQueueIndex]   = useState(0);
-  const [phase, setPhase]             = useState<ReviewPhase>('recall');
-  const [lastGrade, setLastGrade]     = useState<SM2Grade | null>(null);
-  const [sessionDone, setSessionDone] = useState(false);
+  }, [isLoading, dueToday, state.status]);
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const currentId    = queue[queueIndex] ?? null;
+  const currentId = queue[queueIndex] ?? null;
   const currentChunk = currentId ? (CHUNK_MAP.get(currentId) ?? null) : null;
-  const totalDue     = queue.length;
-  const progress     = queueIndex; // cards fully processed
-  const committedCard = lastGrade !== null ? getCard(currentId ?? '') : null;
+  const totalDue = queue.length;
+  const committedCard =
+    lastGrade !== null && currentId ? getCard(currentId) : null;
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
-  /** Called by ActiveRecallBlock when all blanks are correctly filled. */
   const handleRecallComplete = useCallback(() => {
-    setPhase('grading');
+    dispatch({ type: 'COMPLETE_RECALL' });
   }, []);
 
-  /** Called by ReadOnlyCard (no blanks) — skip straight to grading. */
   const handleReadOnlyDone = useCallback(() => {
-    setPhase('grading');
+    dispatch({ type: 'COMPLETE_RECALL' });
   }, []);
 
-  /** Save SM-2 grade and show result briefly, then advance. */
   const handleCommitGrade = useCallback(
     (grade: SM2Grade) => {
       if (!currentId) return;
-      recordReview(currentId, grade);
-      setLastGrade(grade);
-      setPhase('result');
+      recordReview(currentId, grade); // side effect thật (ghi localStorage) — giữ ngoài reducer
+      dispatch({ type: 'COMMIT_GRADE', grade });
     },
     [currentId, recordReview]
   );
 
-  /** Advance to the next card in the queue. */
   const handleNext = useCallback(() => {
-    setLastGrade(null);
-    const nextIndex = queueIndex + 1;
-    if (nextIndex >= queue.length) {
-      setSessionDone(true);
-    } else {
-      setQueueIndex(nextIndex);
-      setPhase('recall');
+    dispatch({ type: 'NEXT' });
+  }, []);
+
+  // ID mồ côi (có trong SM2 store nhưng không còn trong data hiện tại) —
+  // tự động bỏ qua bằng cách dispatch NEXT, không còn gọi setState trực
+  // tiếp trong thân hàm render như bản gốc.
+  useEffect(() => {
+    if (state.status === 'active' && currentId && !currentChunk) {
+      dispatch({ type: 'NEXT' });
     }
-  }, [queueIndex, queue.length]);
+  }, [state.status, currentId, currentChunk]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
-  if (!queueReady) {
+  if (state.status === 'loading') {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <p className="font-mono text-xs text-slate-600 animate-pulse">
@@ -255,17 +324,11 @@ export default function ReviewPage() {
     );
   }
 
-  // ── Empty queue ───────────────────────────────────────────────────────────
-
-  if (queue.length === 0 || sessionDone) {
+  if (queue.length === 0 || state.status === 'done') {
     return <AllDoneScreen />;
   }
 
-  // ── Guard ─────────────────────────────────────────────────────────────────
-
   if (!currentChunk) {
-    // ID exists in SM2 store but not in local data (stale reference)
-    handleNext();
     return null;
   }
 
@@ -275,7 +338,6 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Ambient glow */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 opacity-20"
@@ -287,7 +349,6 @@ export default function ReviewPage() {
 
       <div className="relative z-10 max-w-2xl mx-auto px-5 pt-10 pb-24">
 
-        {/* ── Header ────────────────────────────────────────────────── */}
         <header
           className="flex items-center justify-between mb-8"
           style={{ animation: 'fadeUp 0.3s ease-out both' }}
@@ -307,13 +368,11 @@ export default function ReviewPage() {
           </Link>
         </header>
 
-        {/* ── Queue progress ─────────────────────────────────────────── */}
         <div
           className="mb-7 space-y-2"
           style={{ animation: 'fadeUp 0.3s ease-out 0.05s both' }}
         >
           <div className="flex items-center justify-between">
-            {/* Mini card dots */}
             <div className="flex items-center gap-1.5" aria-label="Tiến độ queue">
               {queue.map((id, i) => (
                 <span
@@ -349,14 +408,12 @@ export default function ReviewPage() {
           </div>
         </div>
 
-        {/* ── Card ─────────────────────────────────────────────────── */}
         <div
           key={`${currentId}-${phase}`}
           className="rounded-xl border border-slate-800 bg-slate-900/70 backdrop-blur-sm
             p-7 shadow-2xl shadow-black/50 space-y-6"
           style={{ animation: 'fadeUp 0.25s ease-out both' }}
         >
-          {/* Card header */}
           <div className="flex items-start justify-between gap-4">
             <div>
               <span className="font-mono text-[10px] text-slate-600 tracking-widest uppercase">
@@ -374,7 +431,6 @@ export default function ReviewPage() {
 
           <hr className="border-slate-800" aria-hidden="true" />
 
-          {/* ── Phase: recall ─────────────────────────────────────── */}
           {phase === 'recall' && (
             <>
               {hasCode ? (
@@ -391,7 +447,6 @@ export default function ReviewPage() {
             </>
           )}
 
-          {/* ── Phase: grading ────────────────────────────────────── */}
           {phase === 'grading' && (
             <>
               <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5
@@ -405,10 +460,8 @@ export default function ReviewPage() {
             </>
           )}
 
-          {/* ── Phase: result ─────────────────────────────────────── */}
           {phase === 'result' && lastGrade !== null && (
             <div className="space-y-4">
-              {/* Grade confirmation */}
               <div
                 className="rounded-lg border border-emerald-500/30 bg-emerald-500/5
                   px-5 py-4 space-y-1.5"
@@ -443,14 +496,12 @@ export default function ReviewPage() {
                 )}
               </div>
 
-              {/* Remaining in queue */}
               {queueIndex + 1 < totalDue && (
                 <p className="text-xs text-slate-600 font-mono text-right">
                   Còn {totalDue - queueIndex - 1} thẻ trong hàng đợi
                 </p>
               )}
 
-              {/* Next button */}
               <div className="flex justify-end">
                 <button
                   type="button"

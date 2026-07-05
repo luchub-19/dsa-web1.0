@@ -8,19 +8,11 @@ import FeynmanInput from '../../../components/FeynmanInput';
 import ActiveRecallBlock from '../../../components/ActiveRecallBlock';
 import { useSpacedRepetition } from '../../../hooks/useSpacedRepetition';
 import { getChapterBySlug } from '../../../data/curriculum';
+import { normalizeChunks } from '../../../types/curriculum';
 import type { Chunk } from '../../../types/curriculum';
 import type { SM2Grade } from '../../../types/spacedRepetition';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function scoreToGrade(score: number): SM2Grade {
-  if (score === 100) return 5;
-  if (score >= 80)   return 4;
-  if (score >= 60)   return 3;
-  if (score >= 40)   return 2;
-  if (score >= 20)   return 1;
-  return 0;
-}
 
 const GRADE_META: Record<
   SM2Grade,
@@ -39,9 +31,6 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-// ─── Step type ─────────────────────────────────────────────────────────────────
-
-/** 1=theory  2=feynman  3=active-recall  4=srs-rating */
 type Step = 1 | 2 | 3 | 4;
 
 const STEP_LABELS: Record<Step, string> = {
@@ -50,8 +39,6 @@ const STEP_LABELS: Record<Step, string> = {
   3: 'Active Recall',
   4: 'Kết quả',
 };
-
-// ─── 404 screen ────────────────────────────────────────────────────────────────
 
 function NotFoundScreen({ slug }: { slug: string }) {
   return (
@@ -80,33 +67,36 @@ function NotFoundScreen({ slug }: { slug: string }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LearnPage() {
-  const params  = useParams();
-  const router  = useRouter();
-  const slug    = typeof params.slug === 'string' ? params.slug : (params.slug?.[0] ?? '');
+  const params = useParams();
+  const router = useRouter();
+  const slug = typeof params.slug === 'string' ? params.slug : (params.slug?.[0] ?? '');
 
-  // ── Resolve chapter ─────────────────────────────────────────────────────────
   const chapter = getChapterBySlug(slug);
 
-  // ── Guard: unknown slug ─────────────────────────────────────────────────────
   if (!chapter) return <NotFoundScreen slug={slug} />;
 
-  const CHUNKS     = chapter.data as Chunk[];
-  const CHUNK_IDS  = CHUNKS.map((c) => c.id);
-  const TOTAL      = CHUNKS.length;
+  // FIX: chuẩn hóa toàn bộ chunk thô của chương về 1 schema duy nhất ngay khi
+  // vào trang — LessonPlayer và mọi component con bên dưới không cần biết
+  // dữ liệu gốc từng ở schema nào (legacy hay v2).
+  const CHUNKS: Chunk[] = normalizeChunks(chapter.data);
+  const CHUNK_IDS = CHUNKS.map((c) => c.id);
+  const TOTAL = CHUNKS.length;
 
-  return <LessonPlayer
-    key={slug}
-    chunks={CHUNKS}
-    chunkIds={CHUNK_IDS}
-    total={TOTAL}
-    title={chapter.title}
-    slug={slug}
-    router={router}
-  />;
+  return (
+    <LessonPlayer
+      key={slug}
+      chunks={CHUNKS}
+      chunkIds={CHUNK_IDS}
+      total={TOTAL}
+      title={chapter.title}
+      slug={slug}
+      examId={chapter.examId}
+      router={router}
+    />
+  );
 }
 
 // ─── LessonPlayer (inner) ──────────────────────────────────────────────────────
-// Extracted so the outer component can do the guard before hooks run.
 
 interface LessonPlayerProps {
   chunks: Chunk[];
@@ -114,32 +104,32 @@ interface LessonPlayerProps {
   total: number;
   title: string;
   slug: string;
+  /**
+   * FIX: thay cho hard-code danh sách slug trong JSX
+   * (`slug === 'linked-lists' || slug === 'pointers' || ...`), nút "Vào
+   * phòng thi" giờ chỉ hiện khi chương khai báo examId trong data/curriculum.ts.
+   */
+  examId?: string;
   router: ReturnType<typeof useRouter>;
 }
 
-function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPlayerProps) {
-  // ── Lesson state machine ───────────────────────────────────────────────────
+function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: LessonPlayerProps) {
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
-  const [step, setStep]                           = useState<Step>(1);
-  const [done, setDone]                           = useState(false);
+  const [step, setStep] = useState<Step>(1);
+  const [done, setDone] = useState(false);
 
-  // Step-4 ephemeral state
-  const [pendingGrade, setPendingGrade]     = useState<SM2Grade | null>(null);
+  const [pendingGrade, setPendingGrade] = useState<SM2Grade | null>(null);
   const [gradeCommitted, setGradeCommitted] = useState(false);
 
-  // ── Spaced repetition ──────────────────────────────────────────────────────
   const { seedChunks, recordReview, getCard, isLoading } = useSpacedRepetition();
 
   useEffect(() => {
     if (!isLoading) seedChunks(chunkIds);
   }, [isLoading, seedChunks, chunkIds]);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-  const chunk       = chunks[currentChunkIndex];
+  const chunk = chunks[currentChunkIndex];
   const isLastChunk = currentChunkIndex === total - 1;
   const committedCard = gradeCommitted ? getCard(chunk.id) : null;
-
-  // ── Navigation ─────────────────────────────────────────────────────────────
 
   const goNextChunk = useCallback(() => {
     setPendingGrade(null);
@@ -167,8 +157,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
     },
     [chunk.id, recordReview]
   );
-
-  // ── Finished screen ────────────────────────────────────────────────────────
 
   if (done) {
     return (
@@ -224,8 +212,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
     );
   }
 
-  // ── Main layout ─────────────────────────────────────────────────────────────
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div
@@ -239,7 +225,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
 
       <div className="relative z-10 max-w-2xl mx-auto px-5 pt-10 pb-24">
 
-        {/* Header */}
         <header className="mb-8 flex items-start justify-between">
           <div>
             <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-indigo-400/60">
@@ -256,7 +241,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
           </Link>
         </header>
 
-        {/* Chunk progress */}
         <div className="mb-6 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5" aria-label="Tiến độ chunk">
@@ -292,7 +276,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
           </div>
         </div>
 
-        {/* Step tabs */}
         <div className="flex gap-1 mb-6" role="tablist" aria-label="Các bước học">
           {([1, 2, 3, 4] as Step[]).map((s) => (
             <div
@@ -314,14 +297,12 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
           ))}
         </div>
 
-        {/* Card */}
         <div
           key={`${chunk.id}-${step}`}
           className="rounded-xl border border-slate-800 bg-slate-900/70 backdrop-blur-sm
             p-7 shadow-2xl shadow-black/50 space-y-8"
           style={{ animation: 'fadeUp 0.25s ease-out both' }}
         >
-          {/* Step 1: Theory */}
           {step >= 1 && (
             <section aria-label="Lý thuyết">
               <ChunkViewer chunk={chunk} total={total} index={currentChunkIndex} />
@@ -349,7 +330,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
 
           {step >= 2 && <hr className="border-slate-800" aria-hidden="true" />}
 
-          {/* Step 2: Feynman */}
           {step >= 2 && chunk.feynman_prompt && (
             <section aria-label="Feynman Technique">
               <FeynmanInput prompt={chunk.feynman_prompt} onComplete={handleFeynmanComplete} />
@@ -358,7 +338,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
 
           {step >= 3 && <hr className="border-slate-800" aria-hidden="true" />}
 
-          {/* Step 3: Active Recall */}
           {step >= 3 && chunk.code_snippet && (
             <section aria-label="Active Recall">
               <ActiveRecallBlock codeSnippet={chunk.code_snippet} onComplete={handleRecallComplete} />
@@ -367,7 +346,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
 
           {step >= 4 && <hr className="border-slate-800" aria-hidden="true" />}
 
-          {/* Step 4: SRS Self-rating */}
           {step === 4 && (
             <section aria-label="Đánh giá SRS và chuyển chunk">
               <p className="font-mono text-[10px] uppercase tracking-widest text-indigo-400/70 mb-1">
@@ -377,13 +355,12 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
                 Bạn nhớ khái niệm này ở mức độ nào?
               </p>
 
-              {/* Grade picker */}
               {!gradeCommitted && (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2"
                     role="group" aria-label="Chọn mức độ ghi nhớ (0–5)">
                     {([5, 4, 3, 2, 1, 0] as SM2Grade[]).map((g) => {
-                      const m   = GRADE_META[g];
+                      const m = GRADE_META[g];
                       const sel = pendingGrade === g;
                       return (
                         <button key={g} type="button" onClick={() => setPendingGrade(g)}
@@ -432,7 +409,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
                 </>
               )}
 
-              {/* After commit */}
               {gradeCommitted && pendingGrade !== null && (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-5 py-4 space-y-1.5"
@@ -460,7 +436,6 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
                     )}
                   </div>
 
-                  {/* Next chunk / last chunk CTAs */}
                   {isLastChunk ? (
                     <div className="flex flex-col gap-3">
                       <button type="button" onClick={goNextChunk}
@@ -475,9 +450,11 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
                             strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>
-                      {slug === 'linked-lists' || slug === 'pointers' || slug === 'element-ds' ? (
+                      {/* FIX: trước đây hard-code `slug === 'linked-lists' || slug === 'pointers' || slug === 'element-ds'`.
+                          Giờ chỉ phụ thuộc examId khai báo trong data/curriculum.ts. */}
+                      {examId ? (
                         <button type="button"
-                          onClick={() => router.push('/exam/pointers')}
+                          onClick={() => router.push(`/exam/${examId}`)}
                           className="w-full inline-flex items-center justify-center gap-3
                             px-6 py-4 rounded-xl text-base font-bold border
                             bg-red-600 hover:bg-red-500 text-white border-red-500
@@ -519,13 +496,16 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, router }: LessonPl
           )}
         </div>
 
-        {/* Dev skip */}
-        <div className="mt-4 flex justify-end">
-          <button type="button" onClick={goNextChunk}
-            className="text-xs font-mono text-slate-700 hover:text-slate-500 transition-colors">
-            skip →
-          </button>
-        </div>
+        {/* FIX: nút "skip" debug giờ chỉ hiện ở môi trường development, không
+            còn xuất hiện trên bản deploy thật (production). */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 flex justify-end">
+            <button type="button" onClick={goNextChunk}
+              className="text-xs font-mono text-slate-700 hover:text-slate-500 transition-colors">
+              skip → (chỉ hiện ở dev)
+            </button>
+          </div>
+        )}
 
       </div>
 

@@ -9,11 +9,11 @@ import React, {
   useId,
 } from 'react';
 import { gradeSubmission } from '../lib/judge0';
+import { sanitizeHtml } from '../lib/sanitizeHtml';
 import type {
   ExamProblem,
   SubmissionState,
   TestCaseResult,
-  SubmissionPhase,
 } from '../types/exam';
 
 // ─── Submission reducer ────────────────────────────────────────────────────────
@@ -240,7 +240,12 @@ export default function WhiteboardExam({
   // ── Submission state machine ───────────────────────────────────
   const [submission, dispatch] = useReducer(submissionReducer, initialSubmissionState);
   const abortRef = useRef<AbortController | null>(null);
-  const submitStartRef = useRef<number | null>(null);
+  // FIX: trước đây là ref (submitStartRef) nhưng lại được đọc trực tiếp
+  // trong JSX để truyền cho <LiveTimer> — đọc ref.current trong lúc render
+  // là anti-pattern (thay đổi ref không kích hoạt re-render, giá trị hiển
+  // thị có thể bị "cũ" một nhịp). Vì giá trị này ẢNH HƯỞNG ĐẾN RENDER, nó
+  // phải là state, không phải ref.
+  const [submitStartedAt, setSubmitStartedAt] = useState<number | null>(null);
 
   // ── Panels ────────────────────────────────────────────────────
   const [activePanel, setActivePanel] = useState<'problem' | 'results'>('problem');
@@ -290,7 +295,7 @@ export default function WhiteboardExam({
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
-    submitStartRef.current = Date.now();
+    setSubmitStartedAt(Date.now());
 
     dispatch({ type: 'START_SUBMIT' });
 
@@ -364,7 +369,7 @@ export default function WhiteboardExam({
           </span>
 
           {isRunning && (
-            <LiveTimer startedAt={submitStartRef.current} />
+            <LiveTimer startedAt={submitStartedAt} />
           )}
 
           {submission.phase === 'done' && submission.score !== null && (
@@ -539,7 +544,7 @@ export default function WhiteboardExam({
                   </p>
                   <div
                     className="problem-body text-sm text-slate-300 leading-relaxed space-y-2"
-                    dangerouslySetInnerHTML={{ __html: problem.description_html }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(problem.description_html) }}
                   />
                 </section>
 

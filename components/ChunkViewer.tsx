@@ -8,9 +8,11 @@ import remarkGfm from 'remark-gfm';
 import 'katex/dist/katex.min.css';
 
 import type { Chunk } from '../types/curriculum';
+import { sanitizeHtml } from '../lib/sanitizeHtml';
 
 interface ChunkViewerProps {
-  chunk: any; // Ép kiểu any để bỏ qua Type mismatch của file schema cũ
+  /** Chunk ĐÃ được chuẩn hóa qua normalizeChunk() — không truyền dữ liệu thô */
+  chunk: Chunk;
   total: number;
   index: number;
 }
@@ -57,41 +59,43 @@ export default function ChunkViewer({
           rehypePlugins={[rehypeKatex]}
           components={{ p: 'span' }}
         >
-          {chunk.title || chunk.concept || ''}
+          {chunk.concept}
         </ReactMarkdown>
       </h2>
 
       {/* ── Theory Content ─────────────────────────────────────────── */}
-      <section className="theory-body prose-custom text-slate-300 leading-relaxed text-sm space-y-3 whitespace-pre-wrap">
-        {chunk.content ? (
+      <section className="theory-body prose-custom text-slate-300 leading-relaxed text-sm space-y-3">
+        {chunk.theoryFormat === 'markdown' ? (
           <div className="markdown-content">
             <ReactMarkdown
               remarkPlugins={[remarkMath, remarkGfm]}
               rehypePlugins={[rehypeKatex]}
             >
-              {chunk.content}
+              {chunk.theory}
             </ReactMarkdown>
           </div>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: chunk.theory_html }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(chunk.theory) }} />
         )}
       </section>
 
       {/* ── Active recall / Feynman Prompt ─────────────── */}
-      <aside className="recall-aside mt-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
-        <p className="text-xs font-mono text-amber-400/70 uppercase tracking-widest mb-1">
-          Feynman / Active Recall
-        </p>
-        <div className="text-sm text-amber-100/80 leading-relaxed font-semibold">
-          <ReactMarkdown
-            remarkPlugins={[remarkMath, remarkGfm]}
-            rehypePlugins={[rehypeKatex]}
-            components={{ p: 'span' }}
-          >
-            {chunk.recallPrompt || chunk.active_recall_q || ''}
-          </ReactMarkdown>
-        </div>
-      </aside>
+      {chunk.active_recall_q && (
+        <aside className="recall-aside mt-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
+          <p className="text-xs font-mono text-amber-400/70 uppercase tracking-widest mb-1">
+            Feynman / Active Recall
+          </p>
+          <div className="text-sm text-amber-100/80 leading-relaxed font-semibold">
+            <ReactMarkdown
+              remarkPlugins={[remarkMath, remarkGfm]}
+              rehypePlugins={[rehypeKatex]}
+              components={{ p: 'span' }}
+            >
+              {chunk.active_recall_q}
+            </ReactMarkdown>
+          </div>
+        </aside>
+      )}
     </article>
   );
 }
