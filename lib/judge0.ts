@@ -2,8 +2,6 @@
 
 import type {
   ExamProblem,
-  Judge0SubmissionRequest,
-  Judge0SubmissionResponse,
   Judge0Result,
   Judge0StatusId,
   TestCaseResult,
@@ -13,33 +11,23 @@ import type {
 import { JUDGE0_STATUS } from '../types/exam';
 
 // ─── Configuration ─────────────────────────────────────────────────────────────
+//
+// TRƯỚC: gọi thẳng https://ce.judge0.com từ trình duyệt, key hard-code rỗng.
+// SAU: gọi API route của chính domain (/api/judge0/*); route đó (server)
+// mới thật sự nói chuyện với Judge0 dùng JUDGE0_URL/JUDGE0_KEY từ .env —
+// xem lib/judge0Server.ts.
 
-/**
- * Judge0 CE (Community Edition) endpoint.
- *
- * Options:
- *  A) Self-hosted:   http://localhost:2358
- *  B) RapidAPI free: https://judge0-ce.p.rapidapi.com
- *
- * Set NEXT_PUBLIC_JUDGE0_URL in .env.local
- * Set NEXT_PUBLIC_JUDGE0_KEY for RapidAPI key (leave blank for self-hosted)
- */
-const JUDGE0_BASE = 'https://ce.judge0.com';
-const JUDGE0_KEY = '';
+const API_BASE = '/api/judge0';
 
-/** Polling interval in ms */
 const POLL_INTERVAL_MS = 1_000;
-/** Max polling attempts before giving up */
 const MAX_POLL_ATTEMPTS = 30;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function b64Encode(str: string): string {
   if (typeof window !== 'undefined') {
-    // Browser
     return btoa(unescape(encodeURIComponent(str)));
   }
-  // Node (Next.js server actions / route handlers)
   return Buffer.from(str, 'utf-8').toString('base64');
 }
 
@@ -51,20 +39,8 @@ function b64Decode(encoded: string | null): string {
     }
     return Buffer.from(encoded, 'base64').toString('utf-8');
   } catch {
-    return encoded; // already decoded (some Judge0 instances skip encoding)
+    return encoded;
   }
-}
-
-function buildHeaders(): HeadersInit {
-  const h: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  if (JUDGE0_KEY) {
-    h['X-RapidAPI-Key'] = JUDGE0_KEY;
-    h['X-RapidAPI-Host'] = 'judge0-ce.p.rapidapi.com';
-  }
-  return h;
 }
 
 function statusToVerdict(statusId: Judge0StatusId): TestVerdict {
@@ -78,92 +54,68 @@ function statusToVerdict(statusId: Judge0StatusId): TestVerdict {
     case JUDGE0_STATUS.COMPILATION_ERROR:
       return 'compilation_error';
     default:
-      // All runtime error variants
       return 'runtime_error';
   }
 }
 
-// ─── Core API calls ────────────────────────────────────────────────────────────
+// ─── Core API calls (tới API route riêng, không tới Judge0 trực tiếp) ─────────
 
-/**
- * Submit one test case to Judge0.
- * Returns the submission token.
- */
 async function submitOne(
   sourceCode: string,
   stdin: string,
   expectedOutput: string,
   languageId: number,
   timeLimitSec: number,
-  memoryLimitMb: number
+  memoryLimitMb: number,
+  signal?: AbortSignal
 ): Promise<string> {
-  const body: Judge0SubmissionRequest = {
-    source_code: b64Encode(sourceCode),
-    language_id: languageId,
-    stdin: b64Encode(stdin),
-    expected_output: b64Encode(expectedOutput.trim()),
-    cpu_time_limit: timeLimitSec,
-    memory_limit: memoryLimitMb * 1024, // MB → KB
-  };
-
-  const res = await fetch(`${JUDGE0_BASE}/submissions?base64_encoded=true&wait=false`, {
+  const res = await fetch(`${API_BASE}/submit`, {
     method: 'POST',
-    headers: buildHeaders(),
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source_code: b64Encode(sourceCode),
+      language_id: languageId,
+      stdin: b64Encode(stdin),
+      expected_output: b64Encode(expectedOutput.trim()),
+      cpu_time_limit: timeLimitSec,
+      memory_limit: memoryLimitMb * 1024,
+    }),
+    signal,
   });
 
+  const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Judge0 submit failed (${res.status}): ${text}`);
+    throw new Error(data?.error ?? `Submit failed (${res.status})`);
   }
-
-  const data = (await res.json()) as Judge0SubmissionResponse;
   return data.token;
 }
 
-/**
- * Poll Judge0 until a submission leaves the queue / processing states.
- * Throws after MAX_POLL_ATTEMPTS.
- */
-async function pollResult(token: string): Promise<Judge0Result> {
+async function pollResult(token: string, signal?: AbortSignal): Promise<Judge0Result> {
   for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    if (signal?.aborted) throw new Error('Submission cancelled');
 
-    const res = await fetch(
-      `${JUDGE0_BASE}/submissions/${token}?base64_encoded=true`,
-      { headers: buildHeaders() }
-    );
+    const res = await fetch(`${API_BASE}/${token}`, { signal });
+    const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw new Error(`Judge0 poll failed (${res.status})`);
+      throw new Error(data?.error ?? `Poll failed (${res.status})`);
     }
 
-    const data = (await res.json()) as Judge0Result;
-    const sid = data.status.id;
-
+    const sid = data.status?.id;
     if (sid !== JUDGE0_STATUS.IN_QUEUE && sid !== JUDGE0_STATUS.PROCESSING) {
-      return data;
+      return data as Judge0Result;
     }
   }
-
   throw new Error('Judge0 timed out — no result after polling limit');
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Public API (chữ ký không đổi — WhiteboardExam.tsx không cần sửa) ─────────
 
 export interface GradeProgressCallback {
-  /** Called as each test case finishes (0-based index) */
   onTestCaseDone: (index: number, result: TestCaseResult) => void;
 }
 
-/**
- * Grade all test cases in `problem` against `userCode`.
- *
- * Submits all test cases in parallel, then polls each result.
- * Calls `onTestCaseDone` incrementally so the UI can update live.
- *
- * Returns the final SubmissionState (phase='done' or 'error').
- */
 export async function gradeSubmission(
   userCode: string,
   problem: ExamProblem,
@@ -172,7 +124,6 @@ export async function gradeSubmission(
 ): Promise<SubmissionState> {
   const startWall = Date.now();
 
-  // ── Step 1: Submit all test cases simultaneously ──────────────
   let tokens: string[];
   try {
     const tokenPromises = problem.test_cases.map((tc) =>
@@ -182,7 +133,8 @@ export async function gradeSubmission(
         tc.expected_output,
         problem.language_id,
         problem.time_limit_seconds,
-        problem.memory_limit_mb
+        problem.memory_limit_mb,
+        signal
       )
     );
     tokens = await Promise.all(tokenPromises);
@@ -208,7 +160,6 @@ export async function gradeSubmission(
     };
   }
 
-  // ── Step 2: Poll each result ──────────────────────────────────
   const results: TestCaseResult[] = new Array(problem.test_cases.length);
   let compileError: string | null = null;
 
@@ -218,7 +169,7 @@ export async function gradeSubmission(
       let result: Judge0Result;
 
       try {
-        result = await pollResult(token);
+        result = await pollResult(token, signal);
       } catch (err) {
         const fallback: TestCaseResult = {
           label: tc.label,
@@ -261,7 +212,6 @@ export async function gradeSubmission(
     })
   );
 
-  // ── Step 3: Compute score ─────────────────────────────────────
   const total = results.length;
   const passed = results.filter((r) => r.verdict === 'accepted').length;
   const score = total > 0 ? Math.round((passed / total) * 100) : 0;
@@ -277,17 +227,11 @@ export async function gradeSubmission(
   };
 }
 
-/**
- * Returns true if Judge0 is reachable.
- * Used for a health-check before the exam starts.
- */
+/** Health-check qua route riêng thay vì gọi thẳng Judge0 */
 export async function checkJudge0Health(): Promise<boolean> {
   try {
-    const res = await fetch(`${JUDGE0_BASE}/system_info`, {
-      headers: buildHeaders(),
-      signal: AbortSignal.timeout(5_000),
-    });
-    return res.ok;
+    const res = await fetch(`${API_BASE}/submit`, { method: 'OPTIONS' });
+    return res.status < 500;
   } catch {
     return false;
   }
