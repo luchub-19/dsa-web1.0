@@ -21,7 +21,7 @@
 
 `bookdsa-web` là một ứng dụng web hỗ trợ học Cấu trúc dữ liệu & Giải thuật, được xây dựng để giải quyết một vấn đề cụ thể trong cách học truyền thống: kiến thức đọc qua một lần thường không được ghi nhớ lâu dài. Thay vì trình bày lý thuyết theo dạng đọc — hiểu — quên, ứng dụng kết hợp ba cơ chế học tập chủ động: **active recall** (điền lại code từ trí nhớ), **kỹ thuật Feynman** (tự diễn giải khái niệm bằng ngôn ngữ của người học), và **lặp lại ngắt quãng theo thuật toán SM-2** (lên lịch ôn tập đúng thời điểm trước khi kiến thức bị lãng quên).
 
-> ### 🇬🇧 *English version, unfiltered:*
+> ### 🇬🇧 *English version:*
 > This is what happens when someone gets tired of forgetting a data structure they "learned" three days ago. Instead of another glorified PDF viewer, `bookdsa-web` makes you actually *work* for your memory — fill-in-the-blank code, explain concepts back in your own words (no copy-pasting the professor), and a spaced-repetition algorithm that stalks your forgetting curve and pings you right before your brain quietly deletes the file. It's less "study app," more "memory gym with a strict personal trainer."
 
 ---
