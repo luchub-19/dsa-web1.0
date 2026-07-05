@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import AccountBar from "../components/AccountBar";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -20,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-black text-white`}>
+        <AccountBar />
         {children}
       </body>
     </html>
