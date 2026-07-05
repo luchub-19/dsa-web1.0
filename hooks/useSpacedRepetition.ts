@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   applyReview,
   getDueChunkIds,
@@ -11,6 +11,8 @@ import {
   todayISO,
   withCards,
 } from '../lib/sm2';
+import { useAuth } from './useAuth';
+import { deleteAllCards, deleteCard, fetchAllCards, upsertCards } from '../lib/supabase/sm2Sync';
 import type {
   SM2CardRecord,
   SM2Grade,
@@ -22,7 +24,6 @@ import type {
 
 interface HookState {
   store: SM2Store;
-  /** true during the first render while localStorage is being read */
   isLoading: boolean;
 }
 
@@ -35,13 +36,11 @@ type HookAction =
 
 function reducer(state: HookState, action: HookAction): HookState {
   switch (action.type) {
-
     case 'HYDRATE':
       return { store: action.store, isLoading: false };
 
     case 'RECORD_REVIEW': {
       const existing = state.store.cards[action.chunkId];
-      // If the card doesn't exist yet, create it before applying the review
       const base: SM2CardRecord = existing ?? makeNewCard(action.chunkId, action.dateISO);
       const updated = applyReview(base, action.grade, action.dateISO);
       const newCards = { ...state.store.cards, [action.chunkId]: updated };
@@ -62,6 +61,7 @@ function reducer(state: HookState, action: HookAction): HookState {
     }
 
     case 'RESET_CARD': {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- cố ý destructure để loại bỏ key khỏi object
       const { [action.chunkId]: _removed, ...remaining } = state.store.cards;
       return { ...state, store: withCards(state.store, remaining) };
     }
@@ -79,94 +79,141 @@ function reducer(state: HookState, action: HookAction): HookState {
 /**
  * useSpacedRepetition
  * ───────────────────
- * Manages a SuperMemo-2 spaced repetition schedule entirely in
- * React state + localStorage. Zero network calls, zero dependencies
- * beyond React itself.
+ * FIX / NÂNG CẤP (backend đồng bộ — xem phần 2 trong yêu cầu nâng cấp):
  *
- * Usage:
- * ```tsx
- * const { dueToday, recordReview, seedChunks } = useSpacedRepetition();
+ * TRƯỚC: chỉ đọc/ghi localStorage. Đổi máy/trình duyệt = mất hết tiến độ,
+ * không có khái niệm "tài khoản".
  *
- * // After lesson is completed for the first time:
- * seedChunks(['LL-01', 'LL-02', 'LL-03', ...]);
+ * SAU: vẫn giữ NGUYÊN API công khai (UseSpacedRepetitionReturn) — mọi trang
+ * đang gọi hook này (dashboard, learn, review) KHÔNG CẦN SỬA GÌ. Bên trong:
  *
- * // After a whiteboard exam:
- * recordReview('LL-08', 4);  // grade 4 out of 5
- *
- * // Show today's review queue:
- * console.log(dueToday); // ['LL-03', 'LL-07', ...]
- * ```
- *
- * SM-2 Algorithm:
- *   EF' = EF + (0.1 − (5−q)·(0.08 + (5−q)·0.02))
- *   EF' = max(1.3, EF')
- *
- *   grade < 3 → reset: repetition=0, interval=1 day
- *   grade ≥ 3 →
- *     rep 0 → interval 1 day
- *     rep 1 → interval 6 days
- *     rep n → interval = round(prev_interval × EF')
+ *  - Chưa đăng nhập: hành vi y hệt bản gốc — chỉ đọc/ghi localStorage.
+ *  - Đã đăng nhập: khi mount, tải toàn bộ thẻ từ Supabase; nếu có dữ liệu
+ *    "khách" trong localStorage chưa từng đồng bộ (học trước khi đăng nhập),
+ *    tự động upload 1 lần rồi dùng Supabase làm nguồn dữ liệu chính từ đó.
+ *    Mọi thay đổi sau đó (recordReview/seedChunks/resetCard/resetAll) vừa
+ *    cập nhật local (để UI phản hồi tức thì) vừa ghi lên Supabase ở nền
+ *    (fire-and-forget, fail-soft — lỗi mạng không chặn trải nghiệm học).
+ *  - localStorage LUÔN được ghi cache dù đã đăng nhập hay chưa, để mở app
+ *    lần sau (kể cả mất mạng) vẫn có dữ liệu gần nhất ngay lập tức trong
+ *    lúc chờ Supabase phản hồi.
  */
 export function useSpacedRepetition(): UseSpacedRepetitionReturn {
+  const { user, isLoading: authLoading } = useAuth();
   const [state, dispatch] = useReducer(reducer, {
     store: makeEmptyStore(),
     isLoading: true,
   } satisfies HookState);
 
-  // ── Hydrate from localStorage on mount (client only) ─────────
+  // userId hiện tại, dùng trong các callback không muốn đổi identity mỗi render
+  const userIdRef = useRef<string | null>(null);
   useEffect(() => {
-    const stored = loadStore();
-    dispatch({
-      type: 'HYDRATE',
-      store: stored ?? makeEmptyStore(),
-    });
-  }, []);
+    userIdRef.current = user?.id ?? null;
+  }, [user]);
 
-  // ── Persist to localStorage on every store change ─────────────
+  // ── Hydrate: từ Supabase nếu đã đăng nhập, ngược lại từ localStorage ────────
   useEffect(() => {
-    if (state.isLoading) return; // don't overwrite with empty store during hydration
+    if (authLoading) return;
+    let cancelled = false;
+
+    async function hydrate() {
+      if (user) {
+        const remoteCards = await fetchAllCards(user.id);
+        if (cancelled) return;
+
+        // Merge dữ liệu "khách" (học trước khi đăng nhập) chưa từng đồng bộ
+        const localStore = loadStore();
+        const toUpload: SM2CardRecord[] = [];
+        if (localStore) {
+          for (const [id, card] of Object.entries(localStore.cards)) {
+            if (!remoteCards[id]) {
+              remoteCards[id] = card;
+              toUpload.push(card);
+            }
+          }
+        }
+        if (toUpload.length > 0) {
+          await upsertCards(toUpload, user.id);
+        }
+
+        if (!cancelled) {
+          dispatch({
+            type: 'HYDRATE',
+            store: { schema_version: 1, cards: remoteCards, last_updated: new Date().toISOString() },
+          });
+        }
+      } else {
+        const stored = loadStore();
+        if (!cancelled) {
+          dispatch({ type: 'HYDRATE', store: stored ?? makeEmptyStore() });
+        }
+      }
+    }
+
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
+
+  // ── Cache localStorage luôn luôn (kể cả khi đã đăng nhập) ───────────────────
+  useEffect(() => {
+    if (state.isLoading) return;
     saveStore(state.store);
   }, [state.store, state.isLoading]);
 
-  // ── Memoised derived values ───────────────────────────────────
+  // ── Memoised derived values ──────────────────────────────────────────────────
 
-  const today = useMemo(() => todayISO(), []); // stable for the lifetime of the render
+  const today = useMemo(() => todayISO(), []);
 
   const dueToday = useMemo(
     () => getDueChunkIds(state.store.cards, today),
     [state.store.cards, today]
   );
 
-  // ── Stable callback references ────────────────────────────────
+  // ── Actions: cập nhật local ngay + đồng bộ Supabase ở nền (fire-and-forget) ─
 
   const recordReview = useCallback((chunkId: string, grade: SM2Grade) => {
-    dispatch({
-      type: 'RECORD_REVIEW',
-      chunkId,
-      grade,
-      dateISO: todayISO(), // resolve at call-time, not render-time
-    });
-  }, []);
+    const dateISO = todayISO();
+    dispatch({ type: 'RECORD_REVIEW', chunkId, grade, dateISO });
+
+    const uid = userIdRef.current;
+    if (uid) {
+      // Tính lại giá trị mới để gửi lên Supabase (reducer chạy bất đồng bộ với
+      // closure này, nên tính applyReview() độc lập ở đây thay vì đọc state cũ).
+      const existing = state.store.cards[chunkId] ?? makeNewCard(chunkId, dateISO);
+      const updated = applyReview(existing, grade, dateISO);
+      void upsertCards([updated], uid);
+    }
+  }, [state.store.cards]);
 
   const seedChunks = useCallback((chunkIds: string[]) => {
-    dispatch({
-      type: 'SEED_CHUNKS',
-      chunkIds,
-      nowISO: new Date().toISOString(),
-    });
-  }, []);
+    const nowISO = new Date().toISOString();
+    dispatch({ type: 'SEED_CHUNKS', chunkIds, nowISO });
+
+    const uid = userIdRef.current;
+    if (uid) {
+      const newCards = chunkIds
+        .filter((id) => !state.store.cards[id])
+        .map((id) => makeNewCard(id, nowISO));
+      if (newCards.length > 0) void upsertCards(newCards, uid);
+    }
+  }, [state.store.cards]);
 
   const resetCard = useCallback((chunkId: string) => {
     dispatch({ type: 'RESET_CARD', chunkId });
+    const uid = userIdRef.current;
+    if (uid) void deleteCard(chunkId, uid);
   }, []);
 
   const resetAll = useCallback(() => {
     dispatch({ type: 'RESET_ALL' });
+    const uid = userIdRef.current;
+    if (uid) void deleteAllCards(uid);
   }, []);
 
   const getCard = useCallback(
-    (chunkId: string): SM2CardRecord | null =>
-      state.store.cards[chunkId] ?? null,
+    (chunkId: string): SM2CardRecord | null => state.store.cards[chunkId] ?? null,
     [state.store.cards]
   );
 
@@ -178,6 +225,6 @@ export function useSpacedRepetition(): UseSpacedRepetitionReturn {
     resetCard,
     resetAll,
     getCard,
-    isLoading: state.isLoading,
+    isLoading: state.isLoading || authLoading,
   };
 }
