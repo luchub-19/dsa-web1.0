@@ -125,12 +125,13 @@ npm run build        # build production thử
 
 ## 🐛 Vấn đề đã biết / Known Issues
 
-**VI:** Qua rà soát mã nguồn, phần lớn nội dung bài học (12/15 chương) hiện chưa có dữ liệu cho hai tính năng cốt lõi là Active Recall và Feynman prompt — hai tính năng này hiện hoạt động đầy đủ với chương Linked List, Đệ quy và Sắp xếp. Đây là khoảng trống về nội dung, cần được đội ngũ biên soạn bổ sung; không phải lỗi logic xử lý của ứng dụng. Ngoài ra, trường `blanks` được định nghĩa trong schema v2 nhưng chưa được bất kỳ thành phần giao diện nào sử dụng.
+**VI:** Toàn bộ 15/15 chương hiện đã có `feynman_prompt`; 57 trong tổng số 150 chunk có thêm bài tập Active Recall (`code_snippet`) tại những điểm mấu chốt của thuật toán — các chunk còn lại là nội dung lý thuyết/khái niệm thuần túy, chủ đích không có bài tập điền code (ví dụ: định nghĩa, so sánh độ phức tạp, công thức toán). Trường `blanks` được định nghĩa trong schema v2 vẫn chưa được bất kỳ thành phần giao diện nào sử dụng — có thể cân nhắc dùng cho một dạng bài tập khác trong tương lai, hoặc loại bỏ khỏi schema nếu không có kế hoạch dùng đến.
 
 > ### 🇬🇧 English, roast edition:
-> Turns out 12 out of 15 chapters are still running on vibes alone — no Active Recall, no Feynman prompts, nothing. Linked List, Recursion, and Sorting are out here living their best life as the *only* chapters that got the full feature set, like the favorite kids at a family reunion. Everyone else is stuck doing theory-then-self-grade, which defeats half the point of the app but hey, at least the code handles it gracefully instead of crashing about it. Also there's a `blanks` field in the schema that no component has ever touched — just sitting there, unemployed, full of potential, like a gym membership from January.
+> All 15 chapters are now fully alive — no more "living on vibes alone." 57 chunks got real fill-in-the-blank exercises at the exact spots where understanding actually matters (base cases, partition boundaries, the one line that decides whether your BST stays a BST). The rest are theory chunks that never needed a coding drill in the first place — nobody needs to fill in a blank to understand Big-O notation. There's still an unused `blanks` field in the schema, quietly unemployed, still holding onto hope for a future feature that gives it a job.
 
-**To-do:** Bổ sung `code_snippet` và `feynman_prompt` cho 12 file JSON còn lại.
+**Đã hoàn thành:** ✅ Bổ sung `code_snippet` và `feynman_prompt` cho toàn bộ 15 file JSON.
+**To-do tiếp theo:** Cân nhắc dashboard phân tích học tập chi tiết hơn, đề thi cho các chương ngoài Linked List, và quyết định số phận của trường `blanks` chưa dùng đến.
 
 ---
 

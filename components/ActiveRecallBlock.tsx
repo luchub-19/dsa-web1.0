@@ -154,12 +154,22 @@ export default function ActiveRecallBlock({
   }, []);
 
   // ── Validation helpers ────────────────────────────────────────
+  //
+  // FIX: trước đây so khớp đáp án bằng value.trim() === blank.value — so
+  // khớp CHÍNH XÁC từng ký tự, kể cả khoảng trắng ở giữa. Với blank nhiều
+  // token (ví dụ đáp án "k == n"), học sinh gõ "k==n" (không dấu cách) vẫn
+  // đúng về bản chất C++ (spacing quanh toán tử không có ý nghĩa cú pháp)
+  // nhưng bị chấm SAI. normalizeForCompare() bỏ toàn bộ khoảng trắng ở cả
+  // 2 vế trước khi so sánh — khoan dung với cách gõ, vẫn chặt chẽ về nội
+  // dung (thứ tự ký tự phải đúng).
+  const normalizeForCompare = (s: string) => s.replace(/\s+/g, '');
+
   const validateBlank = useCallback(
     (id: number, value: string) => {
       const blank = blanks.find((b) => b.id === id);
       if (!blank) return;
 
-      const correct = value.trim() === blank.value;
+      const correct = normalizeForCompare(value) === normalizeForCompare(blank.value);
 
       setBlankState((prev) => ({
         ...prev,
