@@ -1,15 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
   applyReview,
   getDueChunkIds,
   loadStore,
-  makeEmptyStore,
   makeNewCard,
   saveStore,
   todayISO,
-  withCards,
 } from '../lib/sm2';
 import { useAuth } from './useAuth';
 import { deleteAllCards, deleteCard, fetchAllCards, upsertCards } from '../lib/supabase/sm2Sync';
@@ -20,211 +19,240 @@ import type {
   UseSpacedRepetitionReturn,
 } from '../types/spacedRepetition';
 
-// ─── Reducer ──────────────────────────────────────────────────────────────────
-
-interface HookState {
-  store: SM2Store;
-  isLoading: boolean;
-}
-
-type HookAction =
-  | { type: 'HYDRATE'; store: SM2Store }
-  | { type: 'RECORD_REVIEW'; chunkId: string; grade: SM2Grade; dateISO: string }
-  | { type: 'SEED_CHUNKS'; chunkIds: string[]; nowISO: string }
-  | { type: 'RESET_CARD'; chunkId: string }
-  | { type: 'RESET_ALL' };
-
-function reducer(state: HookState, action: HookAction): HookState {
-  switch (action.type) {
-    case 'HYDRATE':
-      return { store: action.store, isLoading: false };
-
-    case 'RECORD_REVIEW': {
-      const existing = state.store.cards[action.chunkId];
-      const base: SM2CardRecord = existing ?? makeNewCard(action.chunkId, action.dateISO);
-      const updated = applyReview(base, action.grade, action.dateISO);
-      const newCards = { ...state.store.cards, [action.chunkId]: updated };
-      return { ...state, store: withCards(state.store, newCards) };
-    }
-
-    case 'SEED_CHUNKS': {
-      const newCards = { ...state.store.cards };
-      let changed = false;
-      for (const id of action.chunkIds) {
-        if (!newCards[id]) {
-          newCards[id] = makeNewCard(id, action.nowISO);
-          changed = true;
-        }
-      }
-      if (!changed) return state;
-      return { ...state, store: withCards(state.store, newCards) };
-    }
-
-    case 'RESET_CARD': {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- cố ý destructure để loại bỏ key khỏi object
-      const { [action.chunkId]: _removed, ...remaining } = state.store.cards;
-      return { ...state, store: withCards(state.store, remaining) };
-    }
-
-    case 'RESET_ALL':
-      return { store: makeEmptyStore(), isLoading: false };
-
-    default:
-      return state;
-  }
-}
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+type CardsMap = Record<string, SM2CardRecord>;
 
 /**
- * useSpacedRepetition
- * ───────────────────
- * FIX / NÂNG CẤP (backend đồng bộ — xem phần 2 trong yêu cầu nâng cấp):
+ * useSpacedRepetition — bản React Query
+ * ──────────────────────────────────────
+ * TRƯỚC (useReducer thủ công): mỗi recordReview() bắn NGAY 1 request
+ * upsertCards riêng lẻ lên Supabase → mỗi lần chấm điểm 1 chunk = 1
+ * round-trip mạng. Optimistic update tự chế bằng dispatch trước, không có
+ * cơ chế nhất quán chuẩn với cache.
  *
- * TRƯỚC: chỉ đọc/ghi localStorage. Đổi máy/trình duyệt = mất hết tiến độ,
- * không có khái niệm "tài khoản".
- *
- * SAU: vẫn giữ NGUYÊN API công khai (UseSpacedRepetitionReturn) — mọi trang
- * đang gọi hook này (dashboard, learn, review) KHÔNG CẦN SỬA GÌ. Bên trong:
- *
- *  - Chưa đăng nhập: hành vi y hệt bản gốc — chỉ đọc/ghi localStorage.
- *  - Đã đăng nhập: khi mount, tải toàn bộ thẻ từ Supabase; nếu có dữ liệu
- *    "khách" trong localStorage chưa từng đồng bộ (học trước khi đăng nhập),
- *    tự động upload 1 lần rồi dùng Supabase làm nguồn dữ liệu chính từ đó.
- *    Mọi thay đổi sau đó (recordReview/seedChunks/resetCard/resetAll) vừa
- *    cập nhật local (để UI phản hồi tức thì) vừa ghi lên Supabase ở nền
- *    (fire-and-forget, fail-soft — lỗi mạng không chặn trải nghiệm học).
- *  - localStorage LUÔN được ghi cache dù đã đăng nhập hay chưa, để mở app
- *    lần sau (kể cả mất mạng) vẫn có dữ liệu gần nhất ngay lập tức trong
- *    lúc chờ Supabase phản hồi.
+ * SAU:
+ *  - `cards` là 1 React Query, key = ['sm2Cards', userId | 'guest'].
+ *  - Optimistic update CHUẨN qua queryClient.setQueryData ngay khi người
+ *    dùng thao tác (UI phản hồi tức thì, 0ms chờ mạng).
+ *  - Mọi thay đổi cần đồng bộ lên Supabase được gom vào 1 HÀNG ĐỢI
+ *    (pendingRef) thay vì gọi lẻ tẻ. Hàng đợi được "xả" (flush) thành 1
+ *    lệnh upsertCards() DUY NHẤT khi: (a) debounce 2s không có thao tác
+ *    mới, (b) hàng đợi vượt BATCH_MAX_SIZE (tránh giữ quá nhiều thay đổi
+ *    chưa lưu nếu người dùng chấm điểm liên tục), hoặc (c) tab bị ẩn / rời
+ *    trang (tránh mất dữ liệu chưa flush).
+ *  - API công khai (UseSpacedRepetitionReturn) giữ NGUYÊN — mọi trang gọi
+ *    hook này không cần sửa gì.
  */
-export function useSpacedRepetition(): UseSpacedRepetitionReturn {
-  const { user, isLoading: authLoading } = useAuth();
-  const [state, dispatch] = useReducer(reducer, {
-    store: makeEmptyStore(),
-    isLoading: true,
-  } satisfies HookState);
 
-  // userId hiện tại, dùng trong các callback không muốn đổi identity mỗi render
-  const userIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    userIdRef.current = user?.id ?? null;
-  }, [user]);
+const BATCH_DEBOUNCE_MS = 2_000;
+const BATCH_MAX_SIZE = 20;
 
-  // ── Hydrate: từ Supabase nếu đã đăng nhập, ngược lại từ localStorage ────────
-  useEffect(() => {
-    if (authLoading) return;
-    let cancelled = false;
+function sm2QueryKey(userId: string | null) {
+  return ['sm2Cards', userId ?? 'guest'] as const;
+}
 
-    async function hydrate() {
-      if (user) {
-        const remoteCards = await fetchAllCards(user.id);
-        if (cancelled) return;
+async function fetchCards(userId: string | null): Promise<CardsMap> {
+  if (!userId) {
+    return loadStore()?.cards ?? {};
+  }
 
-        // Merge dữ liệu "khách" (học trước khi đăng nhập) chưa từng đồng bộ
-        const localStore = loadStore();
-        const toUpload: SM2CardRecord[] = [];
-        if (localStore) {
-          for (const [id, card] of Object.entries(localStore.cards)) {
-            if (!remoteCards[id]) {
-              remoteCards[id] = card;
-              toUpload.push(card);
-            }
-          }
-        }
-        if (toUpload.length > 0) {
-          await upsertCards(toUpload, user.id);
-        }
+  const remote = await fetchAllCards(userId);
 
-        if (!cancelled) {
-          dispatch({
-            type: 'HYDRATE',
-            store: { schema_version: 1, cards: remoteCards, last_updated: new Date().toISOString() },
-          });
-        }
-      } else {
-        const stored = loadStore();
-        if (!cancelled) {
-          dispatch({ type: 'HYDRATE', store: stored ?? makeEmptyStore() });
-        }
+  // Merge dữ liệu "khách" (học trước khi đăng nhập) chưa từng đồng bộ.
+  const localStore = loadStore();
+  const toUpload: SM2CardRecord[] = [];
+  if (localStore) {
+    for (const [id, card] of Object.entries(localStore.cards)) {
+      if (!remote[id]) {
+        remote[id] = card;
+        toUpload.push(card);
       }
     }
+  }
+  if (toUpload.length > 0) {
+    await upsertCards(toUpload, userId);
+  }
+  return remote;
+}
 
-    hydrate();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, authLoading]);
+export function useSpacedRepetition(): UseSpacedRepetitionReturn {
+  const { user, isLoading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => sm2QueryKey(userId), [userId]);
 
-  // ── Cache localStorage luôn luôn (kể cả khi đã đăng nhập) ───────────────────
+  const { data: cards, isPending } = useQuery({
+    queryKey,
+    enabled: !authLoading,
+    queryFn: () => fetchCards(userId),
+  });
+
+  const cardsMap: CardsMap = useMemo(() => cards ?? {}, [cards]);
+  // isPending vẫn true khi query bị `enabled: false` (chưa xong authLoading)
+  // vì chưa từng có data — đúng ý nghĩa "đang tải" mà UI cũ mong đợi.
+  const isLoading = authLoading || isPending;
+
+  // ── Cache localStorage luôn luôn (kể cả khi đã đăng nhập) ───────────────
   useEffect(() => {
-    if (state.isLoading) return;
-    saveStore(state.store);
-  }, [state.store, state.isLoading]);
+    if (isLoading) return;
+    const store: SM2Store = {
+      schema_version: 1,
+      cards: cardsMap,
+      last_updated: new Date().toISOString(),
+    };
+    saveStore(store);
+  }, [cardsMap, isLoading]);
 
-  // ── Memoised derived values ──────────────────────────────────────────────────
+  // ── userId hiện tại, đọc trong callback không muốn tạo lại mỗi lần đổi user ──
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
-  const today = useMemo(() => todayISO(), []);
+  // ── Hàng đợi ghi Supabase — gom nhóm (batch) + debounce ──────────────────
+  const pendingRef = useRef<Map<string, SM2CardRecord>>(new Map());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const dueToday = useMemo(
-    () => getDueChunkIds(state.store.cards, today),
-    [state.store.cards, today]
+  const flushMutation = useMutation({
+    mutationFn: async (payload: { cards: SM2CardRecord[]; uid: string }) => {
+      await upsertCards(payload.cards, payload.uid);
+    },
+    // Fail-soft: lỗi mạng chỉ log (đã log sẵn trong upsertCards), không
+    // rollback optimistic cache — dữ liệu vẫn đúng cục bộ, sẽ được thử ghi
+    // lại ở lần flush kế tiếp nếu người dùng tiếp tục thao tác trên chunk đó.
+  });
+  const flushMutate = flushMutation.mutate;
+
+  const flushNow = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    const uid = userIdRef.current;
+    if (!uid || pendingRef.current.size === 0) return;
+    const batch = Array.from(pendingRef.current.values());
+    pendingRef.current.clear();
+    flushMutate({ cards: batch, uid });
+  }, [flushMutate]);
+
+  const scheduleFlush = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      flushNow();
+    }, BATCH_DEBOUNCE_MS);
+  }, [flushNow]);
+
+  const queueWrite = useCallback(
+    (card: SM2CardRecord) => {
+      if (!userIdRef.current) return; // khách (chưa đăng nhập) — không đồng bộ mạng
+      pendingRef.current.set(card.chunk_id, card);
+      if (pendingRef.current.size >= BATCH_MAX_SIZE) {
+        flushNow();
+      } else {
+        scheduleFlush();
+      }
+    },
+    [flushNow, scheduleFlush]
   );
 
-  // ── Actions: cập nhật local ngay + đồng bộ Supabase ở nền (fire-and-forget) ─
+  // Xả hàng đợi khi rời trang / ẩn tab / unmount — tránh mất thay đổi chưa gửi.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushNow();
+    };
+    window.addEventListener('pagehide', flushNow);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      flushNow();
+      window.removeEventListener('pagehide', flushNow);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [flushNow]);
 
-  const recordReview = useCallback((chunkId: string, grade: SM2Grade) => {
-    const dateISO = todayISO();
-    dispatch({ type: 'RECORD_REVIEW', chunkId, grade, dateISO });
+  // ── Optimistic update helper (React Query — nguồn sự thật của UI) ────────
+  const applyOptimistic = useCallback(
+    (updater: (prev: CardsMap) => CardsMap) => {
+      queryClient.setQueryData<CardsMap>(queryKey, (prev) => updater(prev ?? {}));
+    },
+    [queryClient, queryKey]
+  );
 
-    const uid = userIdRef.current;
-    if (uid) {
-      // Tính lại giá trị mới để gửi lên Supabase (reducer chạy bất đồng bộ với
-      // closure này, nên tính applyReview() độc lập ở đây thay vì đọc state cũ).
-      const existing = state.store.cards[chunkId] ?? makeNewCard(chunkId, dateISO);
+  // ── Actions ───────────────────────────────────────────────────────────
+
+  const recordReview = useCallback(
+    (chunkId: string, grade: SM2Grade) => {
+      const dateISO = todayISO();
+      const prev = queryClient.getQueryData<CardsMap>(queryKey) ?? {};
+      const existing = prev[chunkId] ?? makeNewCard(chunkId, dateISO);
       const updated = applyReview(existing, grade, dateISO);
-      void upsertCards([updated], uid);
-    }
-  }, [state.store.cards]);
 
-  const seedChunks = useCallback((chunkIds: string[]) => {
-    const nowISO = new Date().toISOString();
-    dispatch({ type: 'SEED_CHUNKS', chunkIds, nowISO });
+      applyOptimistic((p) => ({ ...p, [chunkId]: updated }));
+      queueWrite(updated);
+    },
+    [queryClient, queryKey, applyOptimistic, queueWrite]
+  );
 
-    const uid = userIdRef.current;
-    if (uid) {
+  const seedChunks = useCallback(
+    (chunkIds: string[]) => {
+      const nowISO = new Date().toISOString();
+      const prev = queryClient.getQueryData<CardsMap>(queryKey) ?? {};
       const newCards = chunkIds
-        .filter((id) => !state.store.cards[id])
+        .filter((id) => !prev[id])
         .map((id) => makeNewCard(id, nowISO));
-      if (newCards.length > 0) void upsertCards(newCards, uid);
-    }
-  }, [state.store.cards]);
+      if (newCards.length === 0) return;
 
-  const resetCard = useCallback((chunkId: string) => {
-    dispatch({ type: 'RESET_CARD', chunkId });
-    const uid = userIdRef.current;
-    if (uid) void deleteCard(chunkId, uid);
-  }, []);
+      applyOptimistic((p) => {
+        const next = { ...p };
+        for (const c of newCards) next[c.chunk_id] = c;
+        return next;
+      });
+      for (const c of newCards) queueWrite(c);
+    },
+    [queryClient, queryKey, applyOptimistic, queueWrite]
+  );
+
+  const resetCard = useCallback(
+    (chunkId: string) => {
+      applyOptimistic((prev) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- loại bỏ key khỏi object
+        const { [chunkId]: _removed, ...rest } = prev;
+        return rest;
+      });
+      pendingRef.current.delete(chunkId);
+      const uid = userIdRef.current;
+      if (uid) void deleteCard(chunkId, uid);
+    },
+    [applyOptimistic]
+  );
 
   const resetAll = useCallback(() => {
-    dispatch({ type: 'RESET_ALL' });
+    applyOptimistic(() => ({}));
+    pendingRef.current.clear();
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     const uid = userIdRef.current;
     if (uid) void deleteAllCards(uid);
-  }, []);
+  }, [applyOptimistic]);
 
   const getCard = useCallback(
-    (chunkId: string): SM2CardRecord | null => state.store.cards[chunkId] ?? null,
-    [state.store.cards]
+    (chunkId: string): SM2CardRecord | null => cardsMap[chunkId] ?? null,
+    [cardsMap]
   );
+
+  // ── Derived ──────────────────────────────────────────────────────────
+  const today = useMemo(() => todayISO(), []);
+  const dueToday = useMemo(() => getDueChunkIds(cardsMap, today), [cardsMap, today]);
 
   return {
     dueToday,
-    allCards: state.store.cards,
+    allCards: cardsMap,
     recordReview,
     seedChunks,
     resetCard,
     resetAll,
     getCard,
-    isLoading: state.isLoading || authLoading,
+    isLoading,
   };
 }
