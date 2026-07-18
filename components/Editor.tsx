@@ -56,6 +56,10 @@ export interface EditorProps {
  * phỏng thi viết tay/whiteboard thật), có gutter số dòng. Hoàn toàn tự chứa
  * — không biết gì về Judge0 hay submission state, chỉ nhận value/onChange
  * như 1 input có kiểm soát bình thường.
+ *
+ * FIX (đợt nâng cấp giao diện): recolor sang design token chung của app
+ * (xem app/globals.css) thay vì slate/cyan mặc định. `.whiteboard-texture`
+ * đặt trực tiếp ở đây (không phải globals.css) vì chỉ component này dùng.
  */
 export default function Editor({
   value,
@@ -101,8 +105,8 @@ export default function Editor({
           role="alert"
           aria-live="assertive"
           className="absolute top-3 left-1/2 -translate-x-1/2 z-50
-            px-4 py-2 rounded-lg border border-red-700/60 bg-red-950/90
-            text-xs font-mono text-red-300 shadow-xl
+            px-4 py-2 rounded-lg border border-danger/60 bg-danger/15
+            text-xs font-mono text-danger shadow-xl
             pointer-events-none select-none"
           style={{ animation: 'fadeSlideDown 0.2s ease-out both' }}
         >
@@ -113,10 +117,10 @@ export default function Editor({
       {/* Editor header */}
       <div className="flex-none flex items-center justify-between
         px-4 py-1.5 bg-[#141414] border-b border-white/[0.04]">
-        <span className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
+        <span className="text-[10px] text-ink-faint font-mono tracking-widest uppercase">
           {filename}
         </span>
-        <span className="text-[10px] text-slate-700 font-mono tabular-nums">
+        <span className="text-[10px] text-ink-faint/70 font-mono tabular-nums">
           {lineCount} {lineCount === 1 ? 'line' : 'lines'}
           {' · '}
           {value.length} chars
@@ -133,7 +137,7 @@ export default function Editor({
         >
           <div className="pt-3 pb-3 text-right pr-2.5" style={{ lineHeight: '1.625rem' }}>
             {Array.from({ length: Math.max(lineCount, 1) }, (_, i) => (
-              <div key={i} className="text-[11px] font-mono text-slate-700">
+              <div key={i} className="text-[11px] font-mono text-ink-faint/70">
                 {i + 1}
               </div>
             ))}
@@ -157,20 +161,34 @@ export default function Editor({
           autoCapitalize="off"
           placeholder={"// Write your solution here\n// (paste is disabled)"}
           className={[
-            'flex-1 resize-none bg-[#0f0f0f] text-slate-200',
+            'flex-1 resize-none bg-bg text-ink',
             'font-mono text-sm leading-[1.625rem]',
             'px-4 pt-3 pb-3',
             'outline-none border-none',
-            'placeholder:text-slate-800',
-            'selection:bg-cyan-900/40',
+            'placeholder:text-ink-faint/60',
+            'selection:bg-signal/25',
             'whiteboard-texture',
             disabled ? 'opacity-60 cursor-wait' : 'cursor-text',
           ].join(' ')}
-          style={{ tabSize: 4, caretColor: '#67e8f9' }}
+          style={{ tabSize: 4, caretColor: 'var(--color-signal)' }}
           aria-label="Code editor — paste disabled"
           aria-multiline="true"
         />
       </div>
+
+      <style>{`
+        .whiteboard-texture {
+          background-image:
+            repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent calc(1.625rem - 1px),
+              rgba(255,255,255,0.012) calc(1.625rem - 1px),
+              rgba(255,255,255,0.012) 1.625rem
+            );
+          background-attachment: local;
+        }
+      `}</style>
     </div>
   );
 }

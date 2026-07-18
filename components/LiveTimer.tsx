@@ -16,7 +16,7 @@ export default function LiveTimer({ startedAt }: LiveTimerProps): React.ReactEle
   }, [startedAt]);
   const secs = (elapsed / 1000).toFixed(1);
   return (
-    <span className="font-mono text-xs text-slate-500 tabular-nums">
+    <span className="font-mono text-xs text-ink-faint tabular-nums">
       {startedAt ? `${secs}s` : '—'}
     </span>
   );

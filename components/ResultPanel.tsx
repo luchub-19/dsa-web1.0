@@ -1,19 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { SubmissionState, TestCaseResult } from '../../types/exam';
+import type { SubmissionState, TestCaseResult } from '../types/exam';
 
 // ─── VerdictBadge (nội bộ — chỉ ResultPanel/TestCaseRow cần) ──────────────────
+//
+// Sáu trạng thái, sáu vai trò. `time_limit_exceeded` dùng `periwinkle` (màu
+// vốn chỉ dành cho vòng xoay màu thẻ chương) đơn thuần để phân biệt trực
+// quan với `running` — cả hai nếu không sẽ cùng rơi vào tông `warning`.
 
 function VerdictBadge({ verdict }: { verdict: TestCaseResult['verdict'] }): React.ReactElement {
   const map: Record<TestCaseResult['verdict'], { label: string; cls: string; icon: string }> = {
-    pending:             { label: 'Pending',    cls: 'text-slate-500 border-slate-700',          icon: '○' },
-    running:             { label: 'Running…',   cls: 'text-amber-400 border-amber-700',           icon: '◌' },
-    accepted:            { label: 'Accepted',   cls: 'text-emerald-400 border-emerald-700/60',    icon: '✓' },
-    wrong_answer:        { label: 'Wrong',      cls: 'text-red-400 border-red-700/60',            icon: '✗' },
-    time_limit_exceeded: { label: 'TLE',        cls: 'text-orange-400 border-orange-700/60',      icon: '⏱' },
-    runtime_error:       { label: 'RTE',        cls: 'text-rose-400 border-rose-700/60',          icon: '⚡' },
-    compilation_error:   { label: 'CE',         cls: 'text-yellow-400 border-yellow-700/60',      icon: '⚙' },
+    pending:             { label: 'Pending',    cls: 'text-ink-faint border-border-strong',    icon: '○' },
+    running:             { label: 'Running…',   cls: 'text-warning border-warning/50',          icon: '◌' },
+    accepted:            { label: 'Accepted',   cls: 'text-success border-success/50',          icon: '✓' },
+    wrong_answer:        { label: 'Wrong',      cls: 'text-danger border-danger/50',            icon: '✗' },
+    time_limit_exceeded: { label: 'TLE',        cls: 'text-periwinkle border-periwinkle/50',    icon: '⏱' },
+    runtime_error:       { label: 'RTE',        cls: 'text-danger border-danger/40',            icon: '⚡' },
+    compilation_error:   { label: 'CE',         cls: 'text-violet border-violet/50',            icon: '⚙' },
   };
   const { label, cls, icon } = map[verdict] ?? map.pending;
   return (
@@ -30,12 +34,13 @@ function ScoreRing({ score }: { score: number }): React.ReactElement {
   const r = 28;
   const circ = 2 * Math.PI * r;
   const filled = circ * (score / 100);
-  const color = score === 100 ? '#34d399' : score >= 60 ? '#fbbf24' : '#f87171';
+  const color =
+    score === 100 ? 'var(--color-success)' : score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)';
 
   return (
     <div className="flex flex-col items-center gap-1">
       <svg width="72" height="72" viewBox="0 0 72 72" aria-label={`Score: ${score}%`}>
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#1e293b" strokeWidth="6" />
+        <circle cx="36" cy="36" r={r} fill="none" stroke="var(--color-border-strong)" strokeWidth="6" />
         <circle
           cx="36" cy="36" r={r} fill="none"
           stroke={color} strokeWidth="6"
@@ -50,7 +55,7 @@ function ScoreRing({ score }: { score: number }): React.ReactElement {
           {score}%
         </text>
       </svg>
-      <p className="text-xs font-mono text-slate-500">Score</p>
+      <p className="text-xs font-mono text-ink-faint">Score</p>
     </div>
   );
 }
@@ -69,10 +74,10 @@ function TestCaseRow({ result, index }: { result: TestCaseResult; index: number 
     <div className={[
       'rounded border transition-colors duration-300',
       result.verdict === 'accepted'
-        ? 'border-emerald-900/50 bg-emerald-950/20'
+        ? 'border-success/40 bg-success/10'
         : result.verdict === 'pending' || result.verdict === 'running'
         ? 'border-white/[0.05] bg-white/[0.01]'
-        : 'border-red-900/40 bg-red-950/10',
+        : 'border-danger/30 bg-danger/5',
     ].join(' ')}>
       <button
         type="button"
@@ -80,26 +85,26 @@ function TestCaseRow({ result, index }: { result: TestCaseResult; index: number 
         disabled={!isTerminal}
         className="w-full flex items-center justify-between px-3 py-2
           text-left focus-visible:outline-none focus-visible:ring-1
-          focus-visible:ring-cyan-800 rounded"
+          focus-visible:ring-signal/60 rounded"
       >
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-slate-600 tabular-nums w-5">
+          <span className="text-[10px] font-mono text-ink-faint tabular-nums w-5">
             {index + 1}.
           </span>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-ink-dim">
             {result.hidden ? `Hidden test ${index + 1}` : result.label}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {result.time_ms !== null && (
-            <span className="text-[10px] font-mono text-slate-600 tabular-nums">
+            <span className="text-[10px] font-mono text-ink-faint tabular-nums">
               {result.time_ms}ms
             </span>
           )}
           <VerdictBadge verdict={result.verdict} />
           {isTerminal && showDiff && (
-            <span className="text-[10px] text-slate-700" aria-hidden="true">
+            <span className="text-[10px] text-ink-faint/70" aria-hidden="true">
               {expanded ? '▲' : '▼'}
             </span>
           )}
@@ -109,18 +114,18 @@ function TestCaseRow({ result, index }: { result: TestCaseResult; index: number 
       {expanded && showDiff && (
         <div className="px-3 pb-3 grid grid-cols-2 gap-2">
           <div>
-            <p className="text-[9px] font-mono text-slate-700 uppercase mb-1">Got</p>
-            <pre className="text-[11px] font-mono text-red-300/80
-              whitespace-pre-wrap break-all bg-red-950/20 rounded p-2
-              border border-red-900/30">
+            <p className="text-[9px] font-mono text-ink-faint/70 uppercase mb-1">Got</p>
+            <pre className="text-[11px] font-mono text-danger/80
+              whitespace-pre-wrap break-all bg-danger/10 rounded p-2
+              border border-danger/25">
               {result.actual_output ?? '(empty)'}
             </pre>
           </div>
           <div>
-            <p className="text-[9px] font-mono text-slate-700 uppercase mb-1">Expected</p>
-            <pre className="text-[11px] font-mono text-emerald-300/80
-              whitespace-pre-wrap break-all bg-emerald-950/20 rounded p-2
-              border border-emerald-900/30">
+            <p className="text-[9px] font-mono text-ink-faint/70 uppercase mb-1">Expected</p>
+            <pre className="text-[11px] font-mono text-success/80
+              whitespace-pre-wrap break-all bg-success/10 rounded p-2
+              border border-success/25">
               {result.expected_output}
             </pre>
           </div>
@@ -161,21 +166,21 @@ export default function ResultPanel({
       {submission.phase === 'idle' && (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <span className="text-3xl opacity-20" aria-hidden="true">◎</span>
-          <p className="text-xs font-mono text-slate-700">No submission yet</p>
+          <p className="text-xs font-mono text-ink-faint/70">No submission yet</p>
         </div>
       )}
 
       {/* Error state */}
       {submission.phase === 'error' && (
-        <div className="rounded-lg border border-red-800/60 bg-red-950/30 p-4">
-          <p className="text-xs font-mono text-red-400 mb-2 font-bold">Submission error</p>
-          <p className="text-xs text-red-300/70 font-mono whitespace-pre-wrap">
+        <div className="rounded-lg border border-danger/50 bg-danger/10 p-4">
+          <p className="text-xs font-mono text-danger mb-2 font-bold">Submission error</p>
+          <p className="text-xs text-danger/70 font-mono whitespace-pre-wrap">
             {submission.error_message}
           </p>
           <button
             type="button"
             onClick={onReset}
-            className="mt-3 text-xs font-mono text-slate-500 hover:text-slate-300
+            className="mt-3 text-xs font-mono text-ink-faint hover:text-ink-dim
               underline underline-offset-2 transition-colors"
           >
             Try again
@@ -185,12 +190,12 @@ export default function ResultPanel({
 
       {/* Compile error */}
       {submission.compile_error && (
-        <div className="rounded-lg border border-yellow-800/50 bg-yellow-950/30 p-4">
-          <p className="text-[10px] font-mono text-yellow-500 uppercase
+        <div className="rounded-lg border border-violet/40 bg-violet/10 p-4">
+          <p className="text-[10px] font-mono text-violet uppercase
             tracking-widest mb-2">
             Compilation Error
           </p>
-          <pre className="text-xs text-yellow-200/70 whitespace-pre-wrap
+          <pre className="text-xs text-violet/80 whitespace-pre-wrap
             overflow-x-auto max-h-40 font-mono leading-relaxed">
             {submission.compile_error}
           </pre>
@@ -203,19 +208,19 @@ export default function ResultPanel({
           rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
           <ScoreRing score={submission.score} />
           <div className="text-right space-y-1">
-            <p className="text-xs font-mono text-slate-500">
+            <p className="text-xs font-mono text-ink-faint">
               {passedCount} / {totalCount} tests
             </p>
             {submission.total_time_ms && (
-              <p className="text-xs font-mono text-slate-600">
+              <p className="text-xs font-mono text-ink-faint/70">
                 Wall: {(submission.total_time_ms / 1000).toFixed(1)}s
               </p>
             )}
             <button
               type="button"
               onClick={onReset}
-              className="text-[10px] font-mono text-slate-700
-                hover:text-slate-400 underline underline-offset-2"
+              className="text-[10px] font-mono text-ink-faint/70
+                hover:text-ink-dim underline underline-offset-2"
             >
               Re-submit
             </button>
@@ -226,7 +231,7 @@ export default function ResultPanel({
       {/* Test case list */}
       {submission.test_results.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
+          <p className="text-[10px] font-mono text-ink-faint uppercase tracking-widest">
             Test Cases
           </p>
           {submission.test_results.map((result, i) => (
@@ -239,15 +244,15 @@ export default function ResultPanel({
       {submission.phase === 'done' && rubric && (
         <section className="rounded-lg border border-white/[0.05]
           bg-white/[0.02] p-4 space-y-2">
-          <p className="text-[10px] font-mono text-slate-600
+          <p className="text-[10px] font-mono text-ink-faint
             uppercase tracking-widest mb-2">
             Rubric
           </p>
           <ul className="space-y-1">
             {rubric.map((item, i) => (
-              <li key={i} className="text-xs text-slate-400 font-mono
+              <li key={i} className="text-xs text-ink-dim font-mono
                 flex items-start gap-2">
-                <span className="text-slate-700 flex-shrink-0">·</span>
+                <span className="text-ink-faint/70 flex-shrink-0">·</span>
                 {item}
               </li>
             ))}
