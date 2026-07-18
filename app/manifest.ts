@@ -14,8 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Học Cấu trúc Dữ liệu & Giải thuật với Spaced Repetition, Feynman Technique và Active Recall.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#020617',
-    theme_color: '#020617',
+    background_color: '#09090c',
+    theme_color: '#09090c',
     lang: 'vi',
     icons: [
       {

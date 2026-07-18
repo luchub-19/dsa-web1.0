@@ -33,6 +33,10 @@ interface BlankInputProps {
 /**
  * A single fill-in-the-blank input rendered inline inside a <pre> block.
  * Width is sized to match the expected answer length.
+ *
+ * NOTE: `animate-shake` (wrong-answer state below) references a keyframe
+ * that didn't exist anywhere in the codebase before this redesign — the
+ * shake never actually played. It's now defined once in app/globals.css.
  */
 function BlankInput({
   segment,
@@ -46,10 +50,10 @@ function BlankInput({
 
   const statusClass =
     state.status === 'correct'
-      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
+      ? 'border-success bg-success/10 text-success'
       : state.status === 'wrong'
-      ? 'border-red-500/70 bg-red-500/10 text-red-300 animate-shake'
-      : 'border-cyan-500/50 bg-cyan-500/5 text-cyan-200 focus:border-cyan-400 focus:bg-cyan-500/10';
+      ? 'border-danger/70 bg-danger/10 text-danger animate-shake'
+      : 'border-signal/50 bg-signal/5 text-signal focus:border-signal focus:bg-signal/10';
 
   return (
     <span className="inline-flex items-center relative" aria-label={`Blank ${segment.id + 1}`}>
@@ -82,7 +86,7 @@ function BlankInput({
       {/* Correct tick */}
       {state.status === 'correct' && (
         <span
-          className="absolute -top-2 -right-1 text-emerald-400 text-xs leading-none pointer-events-none select-none"
+          className="absolute -top-2 -right-1 text-success text-xs leading-none pointer-events-none select-none"
           aria-hidden="true"
         >
           ✓
@@ -240,11 +244,11 @@ export default function ActiveRecallBlock({
     // No blankable keywords found — show code read-only and auto-complete
     return (
       <section className="active-recall-block">
-        <p className="text-xs font-mono text-slate-500 mb-2">
+        <p className="text-xs font-mono text-ink-faint mb-2">
           No blanks in this snippet — read carefully.
         </p>
-        <pre className="code-pre rounded-lg bg-slate-900 border border-slate-700/60 p-4 overflow-x-auto">
-          <code className="text-sm text-slate-300 font-mono">{codeSnippet}</code>
+        <pre className="code-pre rounded-lg bg-surface-2 border border-border-strong p-4 overflow-x-auto">
+          <code className="text-sm text-ink-dim font-mono">{codeSnippet}</code>
         </pre>
       </section>
     );
@@ -255,11 +259,11 @@ export default function ActiveRecallBlock({
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-mono text-cyan-400/70 uppercase tracking-widest mb-0.5">
+          <p className="text-xs font-mono text-signal/70 uppercase tracking-widest mb-0.5">
             Active Recall — Code
           </p>
-          <p className="text-xs text-slate-500">
-            Fill each blank and press <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 font-mono text-xs">Enter</kbd> or <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 font-mono text-xs">Tab</kbd> to check.
+          <p className="text-xs text-ink-faint">
+            Fill each blank and press <kbd className="px-1 py-0.5 rounded bg-surface-2 border border-border-strong text-ink-dim font-mono text-xs">Enter</kbd> or <kbd className="px-1 py-0.5 rounded bg-surface-2 border border-border-strong text-ink-dim font-mono text-xs">Tab</kbd> to check.
           </p>
         </div>
 
@@ -271,13 +275,13 @@ export default function ActiveRecallBlock({
               className={[
                 'w-2 h-2 rounded-full transition-colors duration-300',
                 blankState[b.id]?.status === 'correct'
-                  ? 'bg-emerald-400'
-                  : 'bg-slate-700',
+                  ? 'bg-success'
+                  : 'bg-border-strong',
               ].join(' ')}
               aria-hidden="true"
             />
           ))}
-          <span className="ml-1 font-mono text-xs text-slate-500 tabular-nums">
+          <span className="ml-1 font-mono text-xs text-ink-faint tabular-nums">
             {correctCount}/{blanks.length}
           </span>
         </div>
@@ -288,18 +292,18 @@ export default function ActiveRecallBlock({
         className={[
           'rounded-lg border overflow-x-auto transition-colors duration-500',
           completed
-            ? 'border-emerald-500/40 bg-emerald-950/30'
-            : 'border-slate-700/60 bg-slate-900/80',
+            ? 'border-success/40 bg-success/[0.06]'
+            : 'border-border-strong bg-surface-2/80',
         ].join(' ')}
       >
         {/* Fake title bar */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-700/60">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-          <span className="ml-2 font-mono text-xs text-slate-600">snippet.cpp</span>
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-border-strong">
+          <span className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+          <span className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+          <span className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+          <span className="ml-2 font-mono text-xs text-ink-faint">snippet.cpp</span>
           {completed && (
-            <span className="ml-auto text-xs font-mono text-emerald-400">
+            <span className="ml-auto text-xs font-mono text-success">
               ✓ All correct
             </span>
           )}
@@ -309,7 +313,7 @@ export default function ActiveRecallBlock({
           {segments.map((seg) => {
             if (seg.type === 'text') {
               return (
-                <span key={seg.id} className="text-slate-300">
+                <span key={seg.id} className="text-ink-dim">
                   {seg.value}
                 </span>
               );
@@ -337,7 +341,7 @@ export default function ActiveRecallBlock({
             <button
               type="button"
               onClick={() => setShowAnswers(true)}
-              className="text-xs font-mono text-slate-500 hover:text-amber-400 transition-colors underline underline-offset-2"
+              className="text-xs font-mono text-ink-faint hover:text-warning transition-colors underline underline-offset-2"
             >
               Show answers
             </button>
@@ -350,10 +354,10 @@ export default function ActiveRecallBlock({
             onClick={handleCheckAll}
             className={[
               'px-4 py-2 rounded-lg text-sm font-semibold',
-              'bg-cyan-600/80 hover:bg-cyan-500/90 text-white',
-              'border border-cyan-500/50 shadow-lg shadow-cyan-900/30',
+              'bg-signal hover:bg-signal/90 text-bg',
+              'border border-signal shadow-lg shadow-signal/20',
               'transition-all duration-150 active:scale-95',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal',
             ].join(' ')}
           >
             Check All
@@ -364,16 +368,16 @@ export default function ActiveRecallBlock({
       {/* ── Completion banner ──────────────────────────────────── */}
       {completed && (
         <div
-          className="flex items-center gap-3 px-4 py-3 rounded-lg border border-emerald-500/30 bg-emerald-500/8"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg border border-success/30 bg-success/[0.08]"
           role="status"
           aria-live="polite"
         >
           <span className="text-2xl" aria-hidden="true">🎯</span>
           <div>
-            <p className="text-sm font-semibold text-emerald-300">
+            <p className="text-sm font-semibold text-success">
               All blanks correct!
             </p>
-            <p className="text-xs text-emerald-500/70">Moving to next section…</p>
+            <p className="text-xs text-success/70">Moving to next section…</p>
           </div>
         </div>
       )}

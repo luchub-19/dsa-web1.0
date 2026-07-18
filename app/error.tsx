@@ -28,16 +28,16 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-bg text-ink flex items-center justify-center px-6">
       <div className="text-center space-y-5 max-w-md">
         <p className="text-6xl" aria-hidden="true">⚠️</p>
-        <h1 className="text-2xl font-bold text-slate-100">Đã có lỗi xảy ra</h1>
-        <p className="text-sm text-slate-500 font-mono leading-relaxed">
+        <h1 className="text-2xl font-bold text-ink">Đã có lỗi xảy ra</h1>
+        <p className="text-sm text-ink-faint font-mono leading-relaxed">
           Một phần của trang gặp sự cố không mong muốn. Bạn có thể thử lại,
           hoặc quay về trang chủ nếu lỗi vẫn tiếp diễn.
         </p>
         {process.env.NODE_ENV === 'development' && (
-          <pre className="text-left text-xs text-red-400/80 bg-red-950/20 border border-red-900/40
+          <pre className="text-left text-xs text-danger/80 bg-danger/[0.06] border border-danger/25
             rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">
             {error.message}
           </pre>
@@ -46,16 +46,16 @@ export default function GlobalError({
           <button
             type="button"
             onClick={reset}
-            className="px-5 py-2.5 rounded-lg border border-indigo-500 bg-indigo-600
-              hover:bg-indigo-500 text-white text-sm font-semibold transition-colors duration-150
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className="px-5 py-2.5 rounded-lg border border-signal bg-signal
+              hover:bg-signal/90 text-bg text-sm font-semibold transition-colors duration-150
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
           >
             Thử lại
           </button>
           <Link
             href="/"
-            className="px-5 py-2.5 rounded-lg border border-slate-700 bg-slate-800
-              hover:bg-slate-700 text-slate-200 text-sm font-semibold transition-colors duration-150"
+            className="px-5 py-2.5 rounded-lg border border-border-strong bg-surface
+              hover:bg-surface-hover text-ink text-sm font-semibold transition-colors duration-150"
           >
             Về trang chủ
           </Link>

@@ -68,7 +68,7 @@ export default function FeynmanInput({
     <section className="feynman-block flex flex-col gap-4">
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border border-violet-500/50 bg-violet-500/10 flex items-center justify-center">
+        <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border border-violet/50 bg-violet/10 flex items-center justify-center">
           <svg
             width="12"
             height="12"
@@ -78,17 +78,17 @@ export default function FeynmanInput({
           >
             <path
               d="M6 1.5C3.5 1.5 1.5 3.5 1.5 6s2 4.5 4.5 4.5 4.5-2 4.5-4.5S8.5 1.5 6 1.5zm0 7V6m0-2.5v.5"
-              stroke="#a78bfa"
+              stroke="var(--color-violet)"
               strokeWidth="1.2"
               strokeLinecap="round"
             />
           </svg>
         </span>
         <div>
-          <p className="text-xs font-mono text-violet-400/70 uppercase tracking-widest mb-1">
+          <p className="text-xs font-mono text-violet/70 uppercase tracking-widest mb-1">
             Feynman Technique
           </p>
-          <div className="text-sm text-slate-200 leading-relaxed">
+          <div className="text-sm text-ink leading-relaxed">
             <ReactMarkdown
               remarkPlugins={[remarkMath, remarkGfm]}
               rehypePlugins={[rehypeKatex]}
@@ -114,15 +114,15 @@ export default function FeynmanInput({
           rows={5}
           placeholder="Giải thích bằng ngôn ngữ của bạn — như thể đang dạy cho người mới..."
           className={[
-            'w-full resize-none rounded-lg border bg-slate-900/60 px-4 py-3',
-            'font-mono text-sm text-slate-200 placeholder:text-slate-600',
+            'w-full resize-none rounded-lg border bg-surface-2/70 px-4 py-3',
+            'font-mono text-sm text-ink placeholder:text-ink-faint',
             'outline-none transition-all duration-200',
             'focus:ring-1',
             submitted
-              ? 'border-emerald-500/50 ring-emerald-500/30 opacity-70'
+              ? 'border-success/50 ring-success/30 opacity-70'
               : isUnlocked
-              ? 'border-violet-500/50 ring-violet-500/25 focus:ring-violet-500/40'
-              : 'border-slate-700/60 focus:border-violet-500/40 focus:ring-violet-500/20',
+              ? 'border-violet/50 ring-violet/25 focus:ring-violet/40'
+              : 'border-border-strong focus:border-violet/40 focus:ring-violet/20',
           ].join(' ')}
           aria-describedby={`${textareaId}-counter`}
         />
@@ -135,13 +135,13 @@ export default function FeynmanInput({
           aria-atomic="true"
         >
           {submitted ? (
-            <span className="text-xs font-mono text-emerald-400">✓ saved</span>
+            <span className="text-xs font-mono text-success">✓ saved</span>
           ) : isUnlocked ? (
-            <span className="text-xs font-mono text-emerald-400">
+            <span className="text-xs font-mono text-success">
               {charCount} ✓
             </span>
           ) : (
-            <span className="text-xs font-mono text-slate-600">
+            <span className="text-xs font-mono text-ink-faint">
               {remaining} more
             </span>
           )}
@@ -150,23 +150,23 @@ export default function FeynmanInput({
 
       {/* ── Progress strip ───────────────────────────────────────── */}
       <div
-        className="h-0.5 w-full bg-slate-800 rounded-full overflow-hidden"
+        className="h-0.5 w-full bg-border rounded-full overflow-hidden"
         aria-hidden="true"
       >
         <div
-          className={[
-            'h-full rounded-full transition-all duration-300 ease-out',
-            isUnlocked
-              ? 'bg-gradient-to-r from-violet-500 to-emerald-400'
-              : 'bg-violet-500/50',
-          ].join(' ')}
-          style={{ width: `${Math.min(100, (charCount / MIN_CHARS) * 100)}%` }}
+          className="h-full rounded-full transition-all duration-300 ease-out"
+          style={{
+            width: `${Math.min(100, (charCount / MIN_CHARS) * 100)}%`,
+            background: isUnlocked
+              ? 'linear-gradient(to right, var(--color-violet), var(--color-success))'
+              : 'color-mix(in srgb, var(--color-violet) 50%, transparent)',
+          }}
         />
       </div>
 
       {/* ── Submit button ────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-ink-faint">
           {isUnlocked
             ? 'Ctrl+Enter để tiếp tục'
             : `Cần thêm ${remaining} ký tự`}
@@ -180,24 +180,24 @@ export default function FeynmanInput({
             'relative inline-flex items-center gap-2 px-5 py-2 rounded-lg',
             'text-sm font-semibold tracking-wide transition-all duration-200',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-            'focus-visible:ring-offset-slate-950',
+            'focus-visible:ring-offset-bg',
             submitted
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+              ? 'bg-success/20 text-success border border-success/30 cursor-default'
               : isUnlocked
               ? [
-                  'bg-violet-600 hover:bg-violet-500 text-white border border-violet-500',
-                  'shadow-lg shadow-violet-900/50 hover:shadow-violet-700/40',
-                  'focus-visible:ring-violet-500 cursor-pointer',
+                  'bg-violet hover:bg-violet/90 text-bg border border-violet',
+                  'shadow-lg shadow-violet/20 hover:shadow-violet/30',
+                  'focus-visible:ring-violet cursor-pointer',
                   'active:scale-95',
                 ].join(' ')
-              : 'bg-slate-800 text-slate-600 border border-slate-700 cursor-not-allowed',
+              : 'bg-surface-2 text-ink-faint border border-border cursor-not-allowed',
           ].join(' ')}
           aria-disabled={!isUnlocked || submitted}
         >
           {submitted ? (
             <>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M2.5 7l3 3 6-6" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2.5 7l3 3 6-6" stroke="var(--color-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Saved
             </>

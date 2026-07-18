@@ -9,6 +9,7 @@ import 'katex/dist/katex.min.css';
 
 import type { Chunk } from '../types/curriculum';
 import { sanitizeHtml } from '../lib/sanitizeHtml';
+import { ProgressBar } from './ui/ProgressBar';
 
 interface ChunkViewerProps {
   /** Chunk ĐÃ được chuẩn hóa qua normalizeChunk() — không truyền dữ liệu thô */
@@ -22,38 +23,30 @@ export default function ChunkViewer({
   total,
   index,
 }: ChunkViewerProps): React.ReactElement {
-  const progressPercent = Math.round(((index + 1) / total) * 100);
-
   return (
     <article className="chunk-viewer flex flex-col gap-6">
       {/* ── Header bar ─────────────────────────────────────────── */}
       <header className="flex items-center justify-between gap-4">
-        <span className="chunk-id-badge font-mono text-xs tracking-widest px-3 py-1 rounded-sm border border-emerald-500/40 text-emerald-400 bg-emerald-500/5">
+        <span className="chunk-id-badge font-mono text-xs tracking-widest px-3 py-1 rounded-sm border border-success/40 text-success bg-success/5">
           {chunk.id}
         </span>
 
         {/* Progress */}
         <div className="flex items-center gap-3 flex-1 max-w-xs ml-auto">
-          <div
-            className="flex-1 h-0.5 bg-slate-800 rounded-full overflow-hidden"
-            role="progressbar"
-            aria-valuenow={index + 1}
-            aria-valuemin={1}
-            aria-valuemax={total}
-          >
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <span className="font-mono text-xs text-slate-500 tabular-nums whitespace-nowrap">
+          <ProgressBar
+            value={((index + 1) / total) * 100}
+            tone="success"
+            label="Tiến độ chunk"
+            className="flex-1"
+          />
+          <span className="font-mono text-xs text-ink-faint tabular-nums whitespace-nowrap">
             {index + 1} / {total}
           </span>
         </div>
       </header>
 
       {/* ── Concept title ───────────────────────────────────────── */}
-      <h2 className="text-2xl font-bold leading-tight text-slate-100 tracking-tight">
+      <h2 className="text-2xl font-bold leading-tight text-ink tracking-tight">
         <ReactMarkdown
           remarkPlugins={[remarkMath, remarkGfm]}
           rehypePlugins={[rehypeKatex]}
@@ -64,7 +57,7 @@ export default function ChunkViewer({
       </h2>
 
       {/* ── Theory Content ─────────────────────────────────────────── */}
-      <section className="theory-body prose-custom text-slate-300 leading-relaxed text-sm space-y-3">
+      <section className="prose-content text-ink-dim leading-relaxed text-sm space-y-3">
         {chunk.theoryFormat === 'markdown' ? (
           <div className="markdown-content">
             <ReactMarkdown
@@ -81,11 +74,11 @@ export default function ChunkViewer({
 
       {/* ── Active recall / Feynman Prompt ─────────────── */}
       {chunk.active_recall_q && (
-        <aside className="recall-aside mt-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-5 py-4">
-          <p className="text-xs font-mono text-amber-400/70 uppercase tracking-widest mb-1">
+        <aside className="recall-aside mt-2 rounded-lg border border-warning/25 bg-warning/5 px-5 py-4">
+          <p className="text-xs font-mono text-warning/70 uppercase tracking-widest mb-1">
             Feynman / Active Recall
           </p>
-          <div className="text-sm text-amber-100/80 leading-relaxed font-semibold">
+          <div className="text-sm text-warning/80 leading-relaxed font-semibold">
             <ReactMarkdown
               remarkPlugins={[remarkMath, remarkGfm]}
               rehypePlugins={[rehypeKatex]}

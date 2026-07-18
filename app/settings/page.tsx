@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { useSpacedRepetition } from '../../hooks/useSpacedRepetition';
+import { Eyebrow } from '../../components/ui/Eyebrow';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
 /**
  * SettingsPage
@@ -42,105 +45,92 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-5 pt-16 pb-24">
+    <div className="min-h-screen bg-bg text-ink px-5 pt-16 pb-24">
       <div className="max-w-lg mx-auto space-y-8">
 
         <header className="flex items-center justify-between">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-indigo-400/60">Cài đặt</p>
-            <h1 className="text-xl font-bold text-slate-100 mt-0.5">Tài khoản &amp; Dữ liệu</h1>
+            <Eyebrow tone="signal">Cài đặt</Eyebrow>
+            <h1 className="text-xl font-bold text-ink mt-0.5">Tài khoản &amp; Dữ liệu</h1>
           </div>
-          <Link href="/" className="font-mono text-xs text-slate-600 hover:text-slate-400 transition-colors">
+          <Link href="/" className="font-mono text-xs text-ink-faint hover:text-ink-dim transition-colors">
             ← Home
           </Link>
         </header>
 
         {/* Trạng thái tài khoản */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 space-y-3">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-slate-600">Tài khoản</p>
+        <Card className="p-5 space-y-3">
+          <Eyebrow>Tài khoản</Eyebrow>
           {user ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-200">{user.email}</p>
-                <p className="text-xs text-emerald-400 font-mono mt-0.5">Đã đồng bộ với Supabase</p>
+                <p className="text-sm text-ink">{user.email}</p>
+                <p className="text-xs text-success font-mono mt-0.5">Đã đồng bộ với Supabase</p>
               </div>
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800
-                  hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-              >
+              <Button variant="ghost" size="sm" onClick={() => signOut()}>
                 Đăng xuất
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">Chưa đăng nhập — dữ liệu chỉ lưu trên máy này.</p>
-              <Link
-                href="/login"
-                className="px-3 py-1.5 rounded-lg border border-indigo-500/50 bg-indigo-600/20
-                  hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold transition-colors"
-              >
+              <p className="text-xs text-ink-dim">Chưa đăng nhập — dữ liệu chỉ lưu trên máy này.</p>
+              <Button variant="primary" size="sm" onClick={() => router.push('/login')}>
                 Đăng nhập
-              </Link>
+              </Button>
             </div>
           )}
-        </section>
+        </Card>
 
         {/* Thống kê học tập */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-slate-600 mb-4">
-            Thống kê học tập
-          </p>
+        <Card className="p-5">
+          <Eyebrow className="mb-4">Thống kê học tập</Eyebrow>
           {isLoading ? (
-            <p className="text-xs text-slate-600 font-mono">Đang tải…</p>
+            <p className="text-xs text-ink-faint font-mono">Đang tải…</p>
           ) : (
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <p className="text-2xl font-black text-indigo-300 tabular-nums">{stats.total}</p>
-                <p className="text-[10px] font-mono text-slate-600 mt-1">Thẻ đã tạo</p>
+                <p className="font-mono text-2xl font-bold text-signal tabular-nums">{stats.total}</p>
+                <p className="text-[10px] font-mono text-ink-faint mt-1">Thẻ đã tạo</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-cyan-300 tabular-nums">{stats.reviewed}</p>
-                <p className="text-[10px] font-mono text-slate-600 mt-1">Đã ôn ≥1 lần</p>
+                <p className="font-mono text-2xl font-bold text-periwinkle tabular-nums">{stats.reviewed}</p>
+                <p className="text-[10px] font-mono text-ink-faint mt-1">Đã ôn ≥1 lần</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-emerald-300 tabular-nums">{stats.totalReviews}</p>
-                <p className="text-[10px] font-mono text-slate-600 mt-1">Lượt ôn tổng</p>
+                <p className="font-mono text-2xl font-bold text-success tabular-nums">{stats.totalReviews}</p>
+                <p className="text-[10px] font-mono text-ink-faint mt-1">Lượt ôn tổng</p>
               </div>
             </div>
           )}
-        </section>
+        </Card>
 
         {/* Vùng nguy hiểm */}
-        <section className="rounded-xl border border-red-500/25 bg-red-500/5 p-5 space-y-4">
+        <Card tone="danger" className="p-5 space-y-4">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-red-400/80">
-              Vùng nguy hiểm
-            </p>
-            <p className="text-sm text-slate-300 mt-1">Đặt lại toàn bộ tiến độ học tập</p>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+            <Eyebrow tone="danger">Vùng nguy hiểm</Eyebrow>
+            <p className="text-sm text-ink mt-1">Đặt lại toàn bộ tiến độ học tập</p>
+            <p className="text-xs text-ink-dim mt-1 leading-relaxed">
               Xóa vĩnh viễn toàn bộ lịch sử ôn tập SM-2 (kể cả trên Supabase nếu đã đăng nhập).
               Bài học vẫn còn nguyên, nhưng bạn sẽ bắt đầu lại từ đầu như chưa từng học.
-              <strong className="text-red-300"> Không thể hoàn tác.</strong>
+              <strong className="text-danger"> Không thể hoàn tác.</strong>
             </p>
           </div>
 
           {resetDone ? (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-center justify-between">
-              <p className="text-sm text-emerald-300">✓ Đã đặt lại toàn bộ tiến độ.</p>
+            <div className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 flex items-center justify-between">
+              <p className="text-sm text-success">✓ Đã đặt lại toàn bộ tiến độ.</p>
               <button
                 type="button"
                 onClick={() => router.push('/')}
-                className="text-xs font-mono text-emerald-400 underline underline-offset-2"
+                className="text-xs font-mono text-success underline underline-offset-2"
               >
                 Về trang chủ
               </button>
             </div>
           ) : (
             <div className="space-y-2">
-              <label htmlFor="confirm" className="block text-xs text-slate-400">
-                Gõ <code className="px-1.5 py-0.5 rounded bg-slate-800 text-red-300 font-mono">{CONFIRM_WORD}</code> để xác nhận:
+              <label htmlFor="confirm" className="block text-xs text-ink-dim">
+                Gõ <code className="px-1.5 py-0.5 rounded bg-surface-2 text-danger font-mono">{CONFIRM_WORD}</code> để xác nhận:
               </label>
               <div className="flex gap-2">
                 <input
@@ -149,27 +139,17 @@ export default function SettingsPage() {
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
                   placeholder={CONFIRM_WORD}
-                  className="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2
-                    text-sm text-slate-200 font-mono outline-none focus:border-red-500/50
-                    focus:ring-1 focus:ring-red-500/30"
+                  className="flex-1 rounded-lg border border-border bg-surface-2 px-3 py-2
+                    text-sm text-ink font-mono outline-none focus:border-danger/50
+                    focus:ring-1 focus:ring-danger/30"
                 />
-                <button
-                  type="button"
-                  disabled={!canReset}
-                  onClick={handleReset}
-                  className={[
-                    'px-4 py-2 rounded-lg text-sm font-semibold border whitespace-nowrap transition-all duration-150',
-                    canReset
-                      ? 'border-red-500 bg-red-600 hover:bg-red-500 text-white active:scale-95'
-                      : 'border-slate-700 bg-slate-800/50 text-slate-600 cursor-not-allowed',
-                  ].join(' ')}
-                >
+                <Button variant="danger" disabled={!canReset} onClick={handleReset}>
                   Xóa toàn bộ
-                </button>
+                </Button>
               </div>
             </div>
           )}
-        </section>
+        </Card>
 
       </div>
     </div>

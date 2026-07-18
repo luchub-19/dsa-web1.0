@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../hooks/useAuth';
+import { Eyebrow } from '../../components/ui/Eyebrow';
+import { Button } from '../../components/ui/Button';
 
 type Mode = 'signin' | 'signup';
 
@@ -49,37 +51,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-5">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-bg text-ink flex items-center justify-center px-5 relative overflow-hidden">
+      {/* Ambient background — quieter echo of the dashboard's hero, since
+          this is a utility screen, not a place to spend the design's
+          full budget of attention. */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] rounded-full blur-3xl opacity-[0.07] bg-signal" />
+        <div className="absolute inset-0 opacity-[0.03] grid-texture" />
+      </div>
+
+      <div className="relative w-full max-w-sm" style={{ animation: 'fadeUp 0.4s ease-out both' }}>
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-black tracking-tight">
-            Study<span className="text-indigo-400">OS</span>
+          <h1 className="font-mono text-2xl font-bold tracking-tight text-ink">
+            Study<span className="text-signal">OS</span>
           </h1>
-          <p className="text-sm text-slate-500 font-mono mt-1">
+          <Eyebrow className="mt-2">
             {mode === 'signin' ? 'Đăng nhập để đồng bộ tiến độ' : 'Tạo tài khoản mới'}
-          </p>
+          </Eyebrow>
         </div>
 
         {confirmNotice ? (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center space-y-3">
+          <div className="rounded-xl border border-success/30 bg-success/5 p-6 text-center space-y-3">
             <p className="text-2xl" aria-hidden="true">📧</p>
-            <p className="text-sm text-emerald-300 font-semibold">Kiểm tra email của bạn</p>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Mình đã gửi link xác nhận tới <strong className="text-slate-200">{email}</strong>.
+            <p className="text-sm text-success font-semibold">Kiểm tra email của bạn</p>
+            <p className="text-xs text-ink-dim leading-relaxed">
+              Mình đã gửi link xác nhận tới <strong className="text-ink">{email}</strong>.
               Bấm vào link đó rồi quay lại đăng nhập.
             </p>
             <button
               type="button"
               onClick={() => { setConfirmNotice(false); setMode('signin'); }}
-              className="text-xs font-mono text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+              className="text-xs font-mono text-signal hover:text-signal/80 underline underline-offset-2"
             >
               ← Quay lại đăng nhập
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-surface p-6">
             <div>
-              <label htmlFor="email" className="block text-xs font-mono text-slate-500 mb-1.5 uppercase tracking-widest">
+              <label htmlFor="email" className="block text-xs font-mono text-ink-faint mb-1.5 uppercase tracking-widest">
                 Email
               </label>
               <input
@@ -89,15 +99,15 @@ export default function LoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2.5
-                  text-sm text-slate-200 outline-none focus:border-indigo-500/60 focus:ring-1
-                  focus:ring-indigo-500/40 transition-all duration-150"
+                className="w-full rounded-lg border border-border bg-surface-2 px-4 py-2.5
+                  text-sm text-ink outline-none focus:border-signal/60 focus:ring-1
+                  focus:ring-signal/40 transition-all duration-150"
                 placeholder="ban@vidu.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-mono text-slate-500 mb-1.5 uppercase tracking-widest">
+              <label htmlFor="password" className="block text-xs font-mono text-ink-faint mb-1.5 uppercase tracking-widest">
                 Mật khẩu
               </label>
               <input
@@ -108,37 +118,29 @@ export default function LoginPage() {
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-2.5
-                  text-sm text-slate-200 outline-none focus:border-indigo-500/60 focus:ring-1
-                  focus:ring-indigo-500/40 transition-all duration-150"
+                className="w-full rounded-lg border border-border bg-surface-2 px-4 py-2.5
+                  text-sm text-ink outline-none focus:border-signal/60 focus:ring-1
+                  focus:ring-signal/40 transition-all duration-150"
                 placeholder="Ít nhất 6 ký tự"
               />
             </div>
 
             {error && (
-              <p className="text-xs text-red-400 bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2">
+              <p className="text-xs text-danger bg-danger/5 border border-danger/20 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full px-5 py-2.5 rounded-lg text-sm font-semibold border
-                bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500
-                shadow-lg shadow-indigo-900/40 transition-all duration-150 active:scale-95
-                disabled:opacity-50 disabled:cursor-not-allowed
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full">
               {submitting ? 'Đang xử lý…' : mode === 'signin' ? 'Đăng nhập' : 'Đăng ký'}
-            </button>
+            </Button>
 
-            <p className="text-center text-xs text-slate-500">
+            <p className="text-center text-xs text-ink-dim">
               {mode === 'signin' ? (
                 <>
                   Chưa có tài khoản?{' '}
                   <button type="button" onClick={() => { setMode('signup'); setError(null); }}
-                    className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                    className="text-signal hover:text-signal/80 underline underline-offset-2">
                     Đăng ký
                   </button>
                 </>
@@ -146,7 +148,7 @@ export default function LoginPage() {
                 <>
                   Đã có tài khoản?{' '}
                   <button type="button" onClick={() => { setMode('signin'); setError(null); }}
-                    className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                    className="text-signal hover:text-signal/80 underline underline-offset-2">
                     Đăng nhập
                   </button>
                 </>
@@ -156,7 +158,7 @@ export default function LoginPage() {
         )}
 
         <div className="mt-8 text-center">
-          <Link href="/" className="text-xs font-mono text-slate-600 hover:text-slate-400 transition-colors">
+          <Link href="/" className="text-xs font-mono text-ink-faint hover:text-ink-dim transition-colors">
             ← Tiếp tục không cần đăng nhập
           </Link>
         </div>

@@ -145,14 +145,18 @@ interface VerdictBadgeProps {
   verdict: TestCaseResult['verdict'];
 }
 function VerdictBadge({ verdict }: VerdictBadgeProps): React.ReactElement {
+  // Six states, six roles. `time_limit_exceeded` uses `periwinkle` (a hue
+  // otherwise reserved for chapter-card rotation) purely so it reads as
+  // visually distinct from `running` at a glance — both would otherwise
+  // land on the same `warning` tone.
   const map: Record<TestCaseResult['verdict'], { label: string; cls: string; icon: string }> = {
-    pending:             { label: 'Pending',    cls: 'text-slate-500 border-slate-700',          icon: '○' },
-    running:             { label: 'Running…',   cls: 'text-amber-400 border-amber-700',           icon: '◌' },
-    accepted:            { label: 'Accepted',   cls: 'text-emerald-400 border-emerald-700/60',    icon: '✓' },
-    wrong_answer:        { label: 'Wrong',      cls: 'text-red-400 border-red-700/60',            icon: '✗' },
-    time_limit_exceeded: { label: 'TLE',        cls: 'text-orange-400 border-orange-700/60',      icon: '⏱' },
-    runtime_error:       { label: 'RTE',        cls: 'text-rose-400 border-rose-700/60',          icon: '⚡' },
-    compilation_error:   { label: 'CE',         cls: 'text-yellow-400 border-yellow-700/60',      icon: '⚙' },
+    pending:             { label: 'Pending',    cls: 'text-ink-faint border-border-strong',    icon: '○' },
+    running:             { label: 'Running…',   cls: 'text-warning border-warning/50',          icon: '◌' },
+    accepted:            { label: 'Accepted',   cls: 'text-success border-success/50',          icon: '✓' },
+    wrong_answer:        { label: 'Wrong',      cls: 'text-danger border-danger/50',            icon: '✗' },
+    time_limit_exceeded: { label: 'TLE',        cls: 'text-periwinkle border-periwinkle/50',    icon: '⏱' },
+    runtime_error:       { label: 'RTE',        cls: 'text-danger border-danger/40',            icon: '⚡' },
+    compilation_error:   { label: 'CE',         cls: 'text-violet border-violet/50',            icon: '⚙' },
   };
   const { label, cls, icon } = map[verdict] ?? map.pending;
   return (
@@ -173,7 +177,7 @@ function LiveTimer({ startedAt }: TimerProps): React.ReactElement {
   }, [startedAt]);
   const secs = (elapsed / 1000).toFixed(1);
   return (
-    <span className="font-mono text-xs text-slate-500 tabular-nums">
+    <span className="font-mono text-xs text-ink-faint tabular-nums">
       {startedAt ? `${secs}s` : '—'}
     </span>
   );
@@ -183,12 +187,13 @@ function ScoreRing({ score }: { score: number }): React.ReactElement {
   const r = 28;
   const circ = 2 * Math.PI * r;
   const filled = circ * (score / 100);
-  const color = score === 100 ? '#34d399' : score >= 60 ? '#fbbf24' : '#f87171';
+  const color =
+    score === 100 ? 'var(--color-success)' : score >= 60 ? 'var(--color-warning)' : 'var(--color-danger)';
 
   return (
     <div className="flex flex-col items-center gap-1">
       <svg width="72" height="72" viewBox="0 0 72 72" aria-label={`Score: ${score}%`}>
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#1e293b" strokeWidth="6" />
+        <circle cx="36" cy="36" r={r} fill="none" stroke="var(--color-border-strong)" strokeWidth="6" />
         <circle
           cx="36" cy="36" r={r} fill="none"
           stroke={color} strokeWidth="6"
@@ -203,7 +208,7 @@ function ScoreRing({ score }: { score: number }): React.ReactElement {
           {score}%
         </text>
       </svg>
-      <p className="text-xs font-mono text-slate-500">Score</p>
+      <p className="text-xs font-mono text-ink-faint">Score</p>
     </div>
   );
 }
@@ -223,6 +228,13 @@ function ScoreRing({ score }: { score: number }): React.ReactElement {
  *    → per-test-case results streaming in as they finish
  *  – AbortController tied to component unmount so in-flight requests
  *    are cancelled cleanly
+ *
+ * FIX (đợt nâng cấp giao diện): font trước đây được nạp bằng
+ * `@import url('https://fonts.googleapis.com/...')` bên trong 1 thẻ
+ * <style> render lại mỗi lần mount — vừa chặn render vừa không đồng bộ với
+ * next/font. Đã bỏ, dùng chung `font-mono` (JetBrains Mono, nạp đúng cách
+ * qua next/font ở layout.tsx, đã xác nhận có subset tiếng Việt) với phần
+ * còn lại của app thay vì tự tải riêng IBM Plex Mono.
  */
 export default function WhiteboardExam({
   problem,
@@ -341,21 +353,19 @@ export default function WhiteboardExam({
 
   // ── Render ─────────────────────────────────────────────────────
   return (
-    <div className="whiteboard-exam-root flex flex-col h-screen bg-[#0f0f0f] text-slate-200 overflow-hidden"
-      style={{ fontFamily: "'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', monospace" }}
-    >
+    <div className="whiteboard-exam-root flex flex-col h-screen bg-bg text-ink font-mono overflow-hidden">
 
       {/* ══ Top bar ══════════════════════════════════════════════ */}
       <header className="flex-none flex items-center justify-between px-5 py-2.5
-        border-b border-white/5 bg-[#0f0f0f]/90 backdrop-blur-sm z-20">
+        border-b border-white/5 bg-bg/90 backdrop-blur-sm z-20">
 
         {/* Left: problem title */}
         <div className="flex items-center gap-3">
-          <span className="text-[10px] tracking-[0.25em] text-slate-600 uppercase">
+          <span className="text-[10px] tracking-[0.25em] text-ink-faint uppercase">
             Exam
           </span>
           <span className="text-white/20 select-none">|</span>
-          <h1 className="text-sm font-semibold text-slate-200 truncate max-w-xs">
+          <h1 className="text-sm font-semibold text-ink truncate max-w-xs">
             {problem.title}
           </h1>
         </div>
@@ -363,8 +373,8 @@ export default function WhiteboardExam({
         {/* Right: lang badge + timer + submit */}
         <div className="flex items-center gap-4">
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px]
-            font-mono text-slate-500 border border-slate-800 px-2 py-0.5 rounded">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/60" aria-hidden="true" />
+            font-mono text-ink-faint border border-border px-2 py-0.5 rounded">
+            <span className="w-1.5 h-1.5 rounded-full bg-signal/60" aria-hidden="true" />
             {problem.language}
           </span>
 
@@ -374,8 +384,8 @@ export default function WhiteboardExam({
 
           {submission.phase === 'done' && submission.score !== null && (
             <span className={`text-xs font-mono tabular-nums ${
-              submission.score === 100 ? 'text-emerald-400' :
-              submission.score >= 60  ? 'text-amber-400'   : 'text-red-400'
+              submission.score === 100 ? 'text-success' :
+              submission.score >= 60  ? 'text-warning'   : 'text-danger'
             }`}>
               {passedCount}/{totalCount} passed
             </span>
@@ -388,15 +398,15 @@ export default function WhiteboardExam({
             className={[
               'px-4 py-1.5 rounded text-xs font-bold tracking-wider uppercase',
               'border transition-all duration-150 focus-visible:outline-none',
-              'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]',
+              'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
               isRunning
-                ? 'border-amber-700/50 text-amber-600 bg-amber-950/40 cursor-wait animate-pulse'
+                ? 'border-warning/50 text-warning bg-warning/10 cursor-wait animate-pulse'
                 : !code.trim()
-                ? 'border-slate-800 text-slate-700 cursor-not-allowed bg-transparent'
+                ? 'border-border text-ink-faint cursor-not-allowed bg-transparent'
                 : [
-                    'border-emerald-700/60 text-emerald-300 bg-emerald-950/40',
-                    'hover:bg-emerald-900/40 hover:border-emerald-600/80',
-                    'active:scale-95 focus-visible:ring-emerald-500',
+                    'border-success/60 text-success bg-success/10',
+                    'hover:bg-success/15 hover:border-success/80',
+                    'active:scale-95 focus-visible:ring-success',
                   ].join(' '),
             ].join(' ')}
             aria-busy={isRunning}
@@ -418,8 +428,8 @@ export default function WhiteboardExam({
               role="alert"
               aria-live="assertive"
               className="absolute top-3 left-1/2 -translate-x-1/2 z-50
-                px-4 py-2 rounded-lg border border-red-700/60 bg-red-950/90
-                text-xs font-mono text-red-300 shadow-xl
+                px-4 py-2 rounded-lg border border-danger/60 bg-danger/15
+                text-xs font-mono text-danger shadow-xl
                 pointer-events-none select-none"
               style={{ animation: 'fadeSlideDown 0.2s ease-out both' }}
             >
@@ -430,10 +440,10 @@ export default function WhiteboardExam({
           {/* Editor header */}
           <div className="flex-none flex items-center justify-between
             px-4 py-1.5 bg-[#141414] border-b border-white/[0.04]">
-            <span className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">
+            <span className="text-[10px] text-ink-faint font-mono tracking-widest uppercase">
               solution.cpp
             </span>
-            <span className="text-[10px] text-slate-700 font-mono tabular-nums">
+            <span className="text-[10px] text-ink-faint/70 font-mono tabular-nums">
               {lineCount} {lineCount === 1 ? 'line' : 'lines'}
               {' · '}
               {code.length} chars
@@ -456,7 +466,7 @@ export default function WhiteboardExam({
                 {Array.from({ length: Math.max(lineCount, 1) }, (_, i) => (
                   <div
                     key={i}
-                    className="text-[11px] font-mono text-slate-700"
+                    className="text-[11px] font-mono text-ink-faint/70"
                   >
                     {i + 1}
                   </div>
@@ -481,19 +491,19 @@ export default function WhiteboardExam({
               autoCapitalize="off"
               placeholder={"// Write your solution here\n// (paste is disabled)"}
               className={[
-                'flex-1 resize-none bg-[#0f0f0f] text-slate-200',
+                'flex-1 resize-none bg-bg text-ink',
                 'font-mono text-sm leading-[1.625rem]',
                 'px-4 pt-3 pb-3',
                 'outline-none border-none',
-                'placeholder:text-slate-800',
-                'selection:bg-cyan-900/40',
+                'placeholder:text-ink-faint/60',
+                'selection:bg-signal/25',
                 // Subtle scanline texture on the whiteboard
                 'whiteboard-texture',
                 isRunning ? 'opacity-60 cursor-wait' : 'cursor-text',
               ].join(' ')}
               style={{
                 tabSize: 4,
-                caretColor: '#67e8f9',
+                caretColor: 'var(--color-signal)',
               }}
               aria-label="Code editor — paste disabled"
               aria-multiline="true"
@@ -517,13 +527,13 @@ export default function WhiteboardExam({
                   'flex-1 py-2.5 text-[10px] font-mono tracking-widest uppercase',
                   'transition-colors duration-150 focus-visible:outline-none',
                   activePanel === tab
-                    ? 'text-slate-200 border-b border-cyan-500'
-                    : 'text-slate-600 hover:text-slate-400',
+                    ? 'text-ink border-b border-signal'
+                    : 'text-ink-faint hover:text-ink-dim',
                 ].join(' ')}
               >
                 {tab}
                 {tab === 'results' && totalCount > 0 && (
-                  <span className="ml-1.5 text-slate-600">
+                  <span className="ml-1.5 text-ink-faint">
                     ({passedCount}/{totalCount})
                   </span>
                 )}
@@ -539,21 +549,21 @@ export default function WhiteboardExam({
               <div className="p-5 space-y-5">
                 {/* Description */}
                 <section>
-                  <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest mb-3">
+                  <p className="text-[10px] font-mono text-ink-faint uppercase tracking-widest mb-3">
                     Problem
                   </p>
                   <div
-                    className="problem-body text-sm text-slate-300 leading-relaxed space-y-2"
+                    className="prose-content text-sm text-ink-dim leading-relaxed space-y-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(problem.description_html) }}
                   />
                 </section>
 
                 {/* Constraints */}
                 <section>
-                  <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest mb-2">
+                  <p className="text-[10px] font-mono text-ink-faint uppercase tracking-widest mb-2">
                     Constraints
                   </p>
-                  <ul className="space-y-1 text-xs font-mono text-slate-500">
+                  <ul className="space-y-1 text-xs font-mono text-ink-faint">
                     <li>⏱ Time limit: {problem.time_limit_seconds}s</li>
                     <li>💾 Memory: {problem.memory_limit_mb} MB</li>
                     <li>🔤 Language: {problem.language}</li>
@@ -562,7 +572,7 @@ export default function WhiteboardExam({
 
                 {/* Visible test cases */}
                 <section>
-                  <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest mb-2">
+                  <p className="text-[10px] font-mono text-ink-faint uppercase tracking-widest mb-2">
                     Sample Cases
                   </p>
                   {problem.test_cases
@@ -574,23 +584,23 @@ export default function WhiteboardExam({
                         className="mb-3 rounded border border-white/[0.06] overflow-hidden"
                       >
                         <div className="px-3 py-1.5 bg-white/[0.02] text-[10px] font-mono
-                          text-slate-600 border-b border-white/[0.04]">
+                          text-ink-faint border-b border-white/[0.04]">
                           {tc.label}
                         </div>
                         <div className="grid grid-cols-2 divide-x divide-white/[0.04]">
                           <div className="px-3 py-2">
-                            <p className="text-[9px] font-mono text-slate-700 mb-1 uppercase">
+                            <p className="text-[9px] font-mono text-ink-faint/70 mb-1 uppercase">
                               Input
                             </p>
-                            <pre className="text-xs text-slate-400 whitespace-pre-wrap break-all">
+                            <pre className="text-xs text-ink-dim whitespace-pre-wrap break-all">
                               {tc.input || '(empty)'}
                             </pre>
                           </div>
                           <div className="px-3 py-2">
-                            <p className="text-[9px] font-mono text-slate-700 mb-1 uppercase">
+                            <p className="text-[9px] font-mono text-ink-faint/70 mb-1 uppercase">
                               Expected
                             </p>
-                            <pre className="text-xs text-emerald-500/80 whitespace-pre-wrap break-all">
+                            <pre className="text-xs text-success/80 whitespace-pre-wrap break-all">
                               {tc.expected_output}
                             </pre>
                           </div>
@@ -598,7 +608,7 @@ export default function WhiteboardExam({
                       </div>
                     ))}
                   {problem.test_cases.some((tc) => tc.hidden) && (
-                    <p className="text-[10px] font-mono text-slate-700 italic">
+                    <p className="text-[10px] font-mono text-ink-faint/70 italic">
                       + {problem.test_cases.filter((t) => t.hidden).length} hidden test{problem.test_cases.filter((t) => t.hidden).length > 1 ? 's' : ''}
                     </p>
                   )}
@@ -614,23 +624,23 @@ export default function WhiteboardExam({
                 {submission.phase === 'idle' && (
                   <div className="flex flex-col items-center justify-center py-16 gap-3">
                     <span className="text-3xl opacity-20" aria-hidden="true">◎</span>
-                    <p className="text-xs font-mono text-slate-700">No submission yet</p>
+                    <p className="text-xs font-mono text-ink-faint/70">No submission yet</p>
                   </div>
                 )}
 
                 {/* Error state */}
                 {submission.phase === 'error' && (
-                  <div className="rounded-lg border border-red-800/60 bg-red-950/30 p-4">
-                    <p className="text-xs font-mono text-red-400 mb-2 font-bold">
+                  <div className="rounded-lg border border-danger/50 bg-danger/10 p-4">
+                    <p className="text-xs font-mono text-danger mb-2 font-bold">
                       Submission error
                     </p>
-                    <p className="text-xs text-red-300/70 font-mono whitespace-pre-wrap">
+                    <p className="text-xs text-danger/70 font-mono whitespace-pre-wrap">
                       {submission.error_message}
                     </p>
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="mt-3 text-xs font-mono text-slate-500 hover:text-slate-300
+                      className="mt-3 text-xs font-mono text-ink-faint hover:text-ink-dim
                         underline underline-offset-2 transition-colors"
                     >
                       Try again
@@ -640,12 +650,12 @@ export default function WhiteboardExam({
 
                 {/* Compile error */}
                 {submission.compile_error && (
-                  <div className="rounded-lg border border-yellow-800/50 bg-yellow-950/30 p-4">
-                    <p className="text-[10px] font-mono text-yellow-500 uppercase
+                  <div className="rounded-lg border border-violet/40 bg-violet/10 p-4">
+                    <p className="text-[10px] font-mono text-violet uppercase
                       tracking-widest mb-2">
                       Compilation Error
                     </p>
-                    <pre className="text-xs text-yellow-200/70 whitespace-pre-wrap
+                    <pre className="text-xs text-violet/80 whitespace-pre-wrap
                       overflow-x-auto max-h-40 font-mono leading-relaxed">
                       {submission.compile_error}
                     </pre>
@@ -658,19 +668,19 @@ export default function WhiteboardExam({
                     rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
                     <ScoreRing score={submission.score} />
                     <div className="text-right space-y-1">
-                      <p className="text-xs font-mono text-slate-500">
+                      <p className="text-xs font-mono text-ink-faint">
                         {passedCount} / {totalCount} tests
                       </p>
                       {submission.total_time_ms && (
-                        <p className="text-xs font-mono text-slate-600">
+                        <p className="text-xs font-mono text-ink-faint/70">
                           Wall: {(submission.total_time_ms / 1000).toFixed(1)}s
                         </p>
                       )}
                       <button
                         type="button"
                         onClick={handleReset}
-                        className="text-[10px] font-mono text-slate-700
-                          hover:text-slate-400 underline underline-offset-2"
+                        className="text-[10px] font-mono text-ink-faint/70
+                          hover:text-ink-dim underline underline-offset-2"
                       >
                         Re-submit
                       </button>
@@ -681,7 +691,7 @@ export default function WhiteboardExam({
                 {/* Test case list */}
                 {submission.test_results.length > 0 && (
                   <section className="space-y-2">
-                    <p className="text-[10px] font-mono text-slate-600
+                    <p className="text-[10px] font-mono text-ink-faint
                       uppercase tracking-widest">
                       Test Cases
                     </p>
@@ -695,15 +705,15 @@ export default function WhiteboardExam({
                 {submission.phase === 'done' && problem.rubric && (
                   <section className="rounded-lg border border-white/[0.05]
                     bg-white/[0.02] p-4 space-y-2">
-                    <p className="text-[10px] font-mono text-slate-600
+                    <p className="text-[10px] font-mono text-ink-faint
                       uppercase tracking-widest mb-2">
                       Rubric
                     </p>
                     <ul className="space-y-1">
                       {problem.rubric.map((item, i) => (
-                        <li key={i} className="text-xs text-slate-400 font-mono
+                        <li key={i} className="text-xs text-ink-dim font-mono
                           flex items-start gap-2">
-                          <span className="text-slate-700 flex-shrink-0">·</span>
+                          <span className="text-ink-faint/70 flex-shrink-0">·</span>
                           {item}
                         </li>
                       ))}
@@ -718,16 +728,9 @@ export default function WhiteboardExam({
 
       {/* ══ Styles injected once ════════════════════════════════ */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap');
-
         @keyframes fadeSlideDown {
           from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        @keyframes pulseGlow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(6,182,212,0); }
-          50%       { box-shadow: 0 0 12px 2px rgba(6,182,212,0.15); }
         }
 
         /* Subtle scanline/grain overlay to evoke whiteboard texture */
@@ -742,20 +745,6 @@ export default function WhiteboardExam({
             );
           background-attachment: local;
         }
-
-        /* Problem body prose */
-        .problem-body p  { margin-bottom: 0.5rem; }
-        .problem-body ul { list-style: disc; padding-left: 1.1rem; margin-bottom: 0.5rem; }
-        .problem-body ol { list-style: decimal; padding-left: 1.1rem; margin-bottom: 0.5rem; }
-        .problem-body li { margin-bottom: 0.2rem; font-size: 0.82rem; }
-        .problem-body code {
-          font-size: 0.78em;
-          background: rgba(99,102,241,0.12);
-          color: #a5b4fc;
-          padding: 0.1em 0.3em;
-          border-radius: 3px;
-        }
-        .problem-body strong { color: #e2e8f0; }
       `}</style>
     </div>
   );
@@ -781,10 +770,10 @@ function TestCaseRow({ result, index }: TestCaseRowProps): React.ReactElement {
     <div className={[
       'rounded border transition-colors duration-300',
       result.verdict === 'accepted'
-        ? 'border-emerald-900/50 bg-emerald-950/20'
+        ? 'border-success/40 bg-success/10'
         : result.verdict === 'pending' || result.verdict === 'running'
         ? 'border-white/[0.05] bg-white/[0.01]'
-        : 'border-red-900/40 bg-red-950/10',
+        : 'border-danger/30 bg-danger/5',
     ].join(' ')}>
 
       {/* Row header */}
@@ -794,26 +783,26 @@ function TestCaseRow({ result, index }: TestCaseRowProps): React.ReactElement {
         disabled={!isTerminal}
         className="w-full flex items-center justify-between px-3 py-2
           text-left focus-visible:outline-none focus-visible:ring-1
-          focus-visible:ring-cyan-800 rounded"
+          focus-visible:ring-signal/60 rounded"
       >
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-slate-600 tabular-nums w-5">
+          <span className="text-[10px] font-mono text-ink-faint tabular-nums w-5">
             {index + 1}.
           </span>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-ink-dim">
             {result.hidden ? `Hidden test ${index + 1}` : result.label}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {result.time_ms !== null && (
-            <span className="text-[10px] font-mono text-slate-600 tabular-nums">
+            <span className="text-[10px] font-mono text-ink-faint tabular-nums">
               {result.time_ms}ms
             </span>
           )}
           <VerdictBadge verdict={result.verdict} />
           {isTerminal && showDiff && (
-            <span className="text-[10px] text-slate-700" aria-hidden="true">
+            <span className="text-[10px] text-ink-faint/70" aria-hidden="true">
               {expanded ? '▲' : '▼'}
             </span>
           )}
@@ -824,20 +813,20 @@ function TestCaseRow({ result, index }: TestCaseRowProps): React.ReactElement {
       {expanded && showDiff && (
         <div className="px-3 pb-3 grid grid-cols-2 gap-2">
           <div>
-            <p className="text-[9px] font-mono text-slate-700 uppercase mb-1">Got</p>
-            <pre className="text-[11px] font-mono text-red-300/80
-              whitespace-pre-wrap break-all bg-red-950/20 rounded p-2
-              border border-red-900/30">
+            <p className="text-[9px] font-mono text-ink-faint/70 uppercase mb-1">Got</p>
+            <pre className="text-[11px] font-mono text-danger/80
+              whitespace-pre-wrap break-all bg-danger/10 rounded p-2
+              border border-danger/25">
               {result.actual_output ?? '(empty)'}
             </pre>
           </div>
           <div>
-            <p className="text-[9px] font-mono text-slate-700 uppercase mb-1">
+            <p className="text-[9px] font-mono text-ink-faint/70 uppercase mb-1">
               Expected
             </p>
-            <pre className="text-[11px] font-mono text-emerald-300/80
-              whitespace-pre-wrap break-all bg-emerald-950/20 rounded p-2
-              border border-emerald-900/30">
+            <pre className="text-[11px] font-mono text-success/80
+              whitespace-pre-wrap break-all bg-success/10 rounded p-2
+              border border-success/25">
               {result.expected_output}
             </pre>
           </div>

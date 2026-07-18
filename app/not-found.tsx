@@ -11,19 +11,19 @@ import Link from 'next/link';
  */
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-bg text-ink flex items-center justify-center px-6">
       <div className="text-center space-y-5 max-w-sm">
         <p className="text-6xl" aria-hidden="true">🧭</p>
-        <h1 className="text-2xl font-bold text-slate-100">Không tìm thấy trang</h1>
-        <p className="text-sm text-slate-500 font-mono leading-relaxed">
+        <h1 className="text-2xl font-bold text-ink">Không tìm thấy trang</h1>
+        <p className="text-sm text-ink-faint font-mono leading-relaxed">
           Đường dẫn này không tồn tại — có thể đã bị gõ sai, hoặc trang đã được di chuyển.
         </p>
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg
-            border border-slate-700 bg-slate-800 hover:bg-slate-700
-            text-slate-200 text-sm font-semibold transition-colors duration-150
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            border border-border-strong bg-surface hover:bg-surface-hover
+            text-ink text-sm font-semibold transition-colors duration-150
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
         >
           ← Về trang chủ
         </Link>

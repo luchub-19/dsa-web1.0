@@ -9,6 +9,9 @@ import type { Chunk } from '../../types/curriculum';
 import { normalizeChunks } from '../../types/curriculum';
 import { sanitizeHtml } from '../../lib/sanitizeHtml';
 import { dsaCurriculum } from '../../data/curriculum';
+import { GRADE_STYLE, formatVNDate } from '../../lib/theme/grades';
+import { Eyebrow } from '../../components/ui/Eyebrow';
+import { ProgressBar } from '../../components/ui/ProgressBar';
 
 // ─── Data layer ────────────────────────────────────────────────────────────────
 //
@@ -30,48 +33,39 @@ const ALL_CHUNKS: Chunk[] = dsaCurriculum.flatMap((chapter) =>
 );
 const CHUNK_MAP = new Map(ALL_CHUNKS.map((c) => [c.id, c]));
 
-// ─── SM-2 grade metadata ───────────────────────────────────────────────────────
-
-const GRADE_META: Record<
-  SM2Grade,
-  { label: string; sub: string; color: string; bg: string; border: string }
-> = {
-  5: { label: 'Hoàn hảo',       sub: 'Nhớ ngay',           color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/40' },
-  4: { label: 'Tốt',            sub: 'Đúng, hơi chậm',     color: 'text-cyan-300',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/40'    },
-  3: { label: 'Khó khăn',       sub: 'Nhớ ra, mất công',   color: 'text-amber-300',   bg: 'bg-amber-500/10',   border: 'border-amber-500/40'   },
-  2: { label: 'Lờ mờ',          sub: 'Sai, dễ hơn sau khi xem', color: 'text-orange-300', bg: 'bg-orange-500/10', border: 'border-orange-500/40' },
-  1: { label: 'Gần như quên',   sub: 'Sai, khó nhớ lại',   color: 'text-red-300',     bg: 'bg-red-500/10',     border: 'border-red-500/40'     },
-  0: { label: 'Quên hoàn toàn', sub: 'Không nhớ gì',       color: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/40'    },
+// `sub` stays local — see lib/theme/grades.ts for why it isn't merged in.
+const GRADE_SUB: Record<SM2Grade, string> = {
+  5: 'Nhớ ngay',
+  4: 'Đúng, hơi chậm',
+  3: 'Nhớ ra, mất công',
+  2: 'Sai, dễ hơn sau khi xem',
+  1: 'Sai, khó nhớ lại',
+  0: 'Không nhớ gì',
 };
-
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function AllDoneScreen() {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div
         className="text-center space-y-5 max-w-sm"
         style={{ animation: 'fadeUp 0.4s ease-out both' }}
       >
         <div className="text-6xl" aria-hidden="true">🌿</div>
-        <h2 className="text-2xl font-bold text-slate-100 tracking-tight">
+        <h2 className="text-2xl font-bold text-ink tracking-tight">
           Tất cả đã ôn tập xong!
         </h2>
-        <p className="text-slate-400 font-mono text-sm leading-relaxed">
+        <p className="text-ink-dim font-mono text-sm leading-relaxed">
           Bạn đã hoàn thành mọi mục tiêu ôn tập hôm nay.
           Nghỉ ngơi đi — hệ thống sẽ nhắc lại đúng lúc bạn sắp quên.
         </p>
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg
-            border border-slate-700 bg-slate-800 hover:bg-slate-700
-            text-slate-200 text-sm font-semibold transition-colors duration-150
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            border border-border-strong bg-surface hover:bg-surface-hover
+            text-ink text-sm font-semibold transition-colors duration-150
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
         >
           ← Về trang chủ
         </Link>
@@ -89,28 +83,26 @@ function ReadOnlyCard({
 }) {
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-slate-700/60 bg-slate-900/80 p-5">
-        <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest mb-2">
-          Lý thuyết
-        </p>
+      <div className="rounded-lg border border-border bg-surface-2/80 p-5">
+        <Eyebrow className="mb-2">Lý thuyết</Eyebrow>
         {chunk.theoryFormat === 'html' ? (
           <div
-            className="theory-inline text-sm text-slate-300 leading-relaxed"
+            className="prose-content text-sm text-ink-dim leading-relaxed"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(chunk.theory) }}
           />
         ) : (
-          <div className="theory-inline text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+          <div className="prose-content text-sm text-ink-dim leading-relaxed whitespace-pre-wrap">
             {chunk.theory}
           </div>
         )}
       </div>
 
       {chunk.active_recall_q && (
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-          <p className="text-[10px] font-mono text-amber-400/70 uppercase tracking-widest mb-1">
+        <div className="rounded-lg border border-warning/20 bg-warning/5 px-4 py-3">
+          <p className="text-[10px] font-mono text-warning/70 uppercase tracking-widest mb-1">
             Câu hỏi ôn tập
           </p>
-          <p className="text-sm text-amber-100/80">{chunk.active_recall_q}</p>
+          <p className="text-sm text-warning/80">{chunk.active_recall_q}</p>
         </div>
       )}
 
@@ -119,9 +111,9 @@ function ReadOnlyCard({
           type="button"
           onClick={onDone}
           className="px-5 py-2 rounded-lg text-sm font-semibold border
-            border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200
+            border-border-strong bg-surface hover:bg-surface-hover text-ink
             transition-all duration-150 active:scale-95
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
         >
           Tiếp tục →
         </button>
@@ -139,12 +131,10 @@ function GradePanel({
 
   return (
     <div className="space-y-4" role="group" aria-label="Đánh giá mức độ ghi nhớ">
-      <p className="text-[10px] font-mono text-indigo-400/70 uppercase tracking-widest">
-        Bạn nhớ tốt tới đâu?
-      </p>
+      <Eyebrow tone="warning">Bạn nhớ tốt tới đâu?</Eyebrow>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {([5, 4, 3, 2, 1, 0] as SM2Grade[]).map((g) => {
-          const m = GRADE_META[g];
+          const m = GRADE_STYLE[g];
           const sel = pending === g;
           return (
             <button
@@ -155,18 +145,18 @@ function GradePanel({
               className={[
                 'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border',
                 'text-left transition-all duration-150 active:scale-95',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning',
                 sel
                   ? `${m.bg} ${m.border} ${m.color}`
-                  : 'border-slate-700/60 bg-slate-800/40 text-slate-400 hover:border-slate-600',
+                  : 'border-border bg-surface-2/60 text-ink-faint hover:border-border-strong',
               ].join(' ')}
             >
-              <span className={`font-mono text-xs font-bold ${sel ? m.color : 'text-slate-500'}`}>
+              <span className={`font-mono text-xs font-bold ${sel ? m.color : 'text-ink-faint'}`}>
                 {g}/5
               </span>
               <span className="text-xs font-semibold leading-tight">{m.label}</span>
-              <span className={`text-[10px] leading-tight ${sel ? '' : 'text-slate-600'}`}>
-                {m.sub}
+              <span className={`text-[10px] leading-tight ${sel ? '' : 'text-ink-faint/70'}`}>
+                {GRADE_SUB[g]}
               </span>
             </button>
           );
@@ -181,10 +171,10 @@ function GradePanel({
           className={[
             'px-5 py-2 rounded-lg text-sm font-semibold border',
             'transition-all duration-150 active:scale-95',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning',
             pending === null
-              ? 'border-slate-700 text-slate-600 bg-slate-800/50 cursor-not-allowed'
-              : 'border-indigo-500 bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/40',
+              ? 'border-border text-ink-faint bg-surface-2/50 cursor-not-allowed'
+              : 'border-warning bg-warning hover:bg-warning/90 text-bg shadow-lg shadow-warning/20',
           ].join(' ')}
         >
           Lưu &amp; Tiếp →
@@ -316,8 +306,8 @@ export default function ReviewPage() {
 
   if (state.status === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <p className="font-mono text-xs text-slate-600 animate-pulse">
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <p className="font-mono text-xs text-ink-faint animate-pulse">
           Đang tải dữ liệu ôn tập…
         </p>
       </div>
@@ -337,13 +327,13 @@ export default function ReviewPage() {
   // ── Main render ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-bg text-ink">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 opacity-20"
         style={{
           background:
-            'radial-gradient(ellipse 60% 40% at 50% -5%, rgba(245,158,11,0.2) 0%, transparent 65%)',
+            'radial-gradient(ellipse 60% 40% at 50% -5%, color-mix(in srgb, var(--color-warning) 22%, transparent) 0%, transparent 65%)',
         }}
       />
 
@@ -354,15 +344,13 @@ export default function ReviewPage() {
           style={{ animation: 'fadeUp 0.3s ease-out both' }}
         >
           <div>
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-amber-400/60">
-              Ôn tập
-            </p>
-            <h1 className="text-base font-bold text-slate-200">Review Queue</h1>
+            <Eyebrow tone="warning" className="tracking-[0.3em]">Ôn tập</Eyebrow>
+            <h1 className="text-base font-bold text-ink">Review Queue</h1>
           </div>
           <Link
             href="/"
-            className="font-mono text-xs text-slate-600 hover:text-slate-400
-              transition-colors focus-visible:outline-none focus-visible:text-slate-300"
+            className="font-mono text-xs text-ink-faint hover:text-ink-dim
+              transition-colors focus-visible:outline-none focus-visible:text-ink"
           >
             ← Home
           </Link>
@@ -380,56 +368,48 @@ export default function ReviewPage() {
                   className={[
                     'rounded-full transition-all duration-300',
                     i < queueIndex
-                      ? 'w-2 h-2 bg-emerald-500'
+                      ? 'w-2 h-2 bg-success'
                       : i === queueIndex
-                      ? 'w-2.5 h-2.5 bg-amber-400 ring-2 ring-amber-400/30'
-                      : 'w-2 h-2 bg-slate-700',
+                      ? 'w-2.5 h-2.5 bg-warning ring-2 ring-warning/30'
+                      : 'w-2 h-2 bg-border-strong',
                   ].join(' ')}
                 />
               ))}
             </div>
-            <span className="font-mono text-xs text-slate-500 tabular-nums">
+            <span className="font-mono text-xs text-ink-faint tabular-nums">
               {queueIndex + 1} / {totalDue}
             </span>
           </div>
 
-          <div
-            className="h-0.5 w-full bg-slate-800 rounded-full overflow-hidden"
-            role="progressbar"
-            aria-valuenow={queueIndex + 1}
-            aria-valuemin={1}
-            aria-valuemax={totalDue}
-          >
-            <div
-              className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full
-                transition-all duration-500 ease-out"
-              style={{ width: `${((queueIndex + 1) / totalDue) * 100}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={((queueIndex + 1) / totalDue) * 100}
+            tone="warning"
+            label="Tiến độ hàng đợi ôn tập"
+          />
         </div>
 
         <div
           key={`${currentId}-${phase}`}
-          className="rounded-xl border border-slate-800 bg-slate-900/70 backdrop-blur-sm
+          className="rounded-xl border border-border bg-surface/70 backdrop-blur-sm
             p-7 shadow-2xl shadow-black/50 space-y-6"
           style={{ animation: 'fadeUp 0.25s ease-out both' }}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <span className="font-mono text-[10px] text-slate-600 tracking-widest uppercase">
+              <span className="font-mono text-[10px] text-ink-faint tracking-widest uppercase">
                 {currentChunk.id}
               </span>
-              <h2 className="text-lg font-bold text-slate-100 leading-snug mt-0.5">
+              <h2 className="text-lg font-bold text-ink leading-snug mt-0.5">
                 {currentChunk.concept}
               </h2>
             </div>
             <span className="flex-shrink-0 font-mono text-[10px] px-2 py-0.5 rounded-sm
-              border border-amber-500/30 text-amber-400/70 bg-amber-500/5">
+              border border-warning/30 text-warning/70 bg-warning/5">
               ôn tập
             </span>
           </div>
 
-          <hr className="border-slate-800" aria-hidden="true" />
+          <hr className="border-border" aria-hidden="true" />
 
           {phase === 'recall' && (
             <>
@@ -449,10 +429,10 @@ export default function ReviewPage() {
 
           {phase === 'grading' && (
             <>
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5
+              <div className="rounded-lg border border-success/20 bg-success/5
                 px-4 py-3 flex items-center gap-3">
                 <span className="text-lg" aria-hidden="true">✓</span>
-                <p className="text-sm text-emerald-300 font-semibold">
+                <p className="text-sm text-success font-semibold">
                   Hoàn thành! Đánh giá mức độ ghi nhớ của bạn.
                 </p>
               </div>
@@ -463,32 +443,32 @@ export default function ReviewPage() {
           {phase === 'result' && lastGrade !== null && (
             <div className="space-y-4">
               <div
-                className="rounded-lg border border-emerald-500/30 bg-emerald-500/5
+                className="rounded-lg border border-success/30 bg-success/5
                   px-5 py-4 space-y-1.5"
                 role="status"
                 aria-live="polite"
               >
                 <div className="flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <path d="M2.5 7l3 3 6-6" stroke="#34d399" strokeWidth="1.5"
+                    <path d="M2.5 7l3 3 6-6" stroke="var(--color-success)" strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <p className="text-sm font-semibold text-emerald-300">
+                  <p className="text-sm font-semibold text-success">
                     Đã lưu — SM-2:{' '}
                     <span className="font-mono">{lastGrade}/5</span>
-                    <span className="ml-2 font-normal text-emerald-400/60">
-                      · {GRADE_META[lastGrade].label}
+                    <span className="ml-2 font-normal text-success/60">
+                      · {GRADE_STYLE[lastGrade].label}
                     </span>
                   </p>
                 </div>
 
                 {committedCard?.next_review_date && (
-                  <p className="text-xs font-mono text-slate-400 pl-5">
+                  <p className="text-xs font-mono text-ink-dim pl-5">
                     Ôn tiếp:{' '}
-                    <strong className="text-indigo-300">
-                      {formatDate(committedCard.next_review_date)}
+                    <strong className="text-signal">
+                      {formatVNDate(committedCard.next_review_date)}
                     </strong>
-                    <span className="text-slate-600 ml-2">
+                    <span className="text-ink-faint ml-2">
                       (sau {committedCard.interval_days} ngày · EF{' '}
                       {committedCard.ease_factor.toFixed(2)})
                     </span>
@@ -497,7 +477,7 @@ export default function ReviewPage() {
               </div>
 
               {queueIndex + 1 < totalDue && (
-                <p className="text-xs text-slate-600 font-mono text-right">
+                <p className="text-xs text-ink-faint font-mono text-right">
                   Còn {totalDue - queueIndex - 1} thẻ trong hàng đợi
                 </p>
               )}
@@ -508,9 +488,9 @@ export default function ReviewPage() {
                   onClick={handleNext}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg
                     text-sm font-semibold border transition-all duration-150 active:scale-95
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400
-                    bg-amber-500/10 hover:bg-amber-500/15 text-amber-300
-                    border-amber-500/30 hover:border-amber-400/40"
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning
+                    bg-warning/10 hover:bg-warning/15 text-warning
+                    border-warning/30 hover:border-warning/40"
                 >
                   {queueIndex + 1 >= totalDue ? (
                     <>Hoàn thành phiên ôn tập 🎉</>
@@ -531,25 +511,6 @@ export default function ReviewPage() {
         </div>
 
       </div>
-
-      <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .theory-inline p  { margin-bottom: 0.5rem; }
-        .theory-inline ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.5rem; }
-        .theory-inline li { margin-bottom: 0.25rem; }
-        .theory-inline code {
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          font-size: 0.8em;
-          background: rgba(99,102,241,0.13);
-          color: #a5b4fc;
-          padding: 0.1em 0.35em;
-          border-radius: 3px;
-        }
-        .theory-inline strong { color: #e2e8f0; }
-      `}</style>
     </div>
   );
 }

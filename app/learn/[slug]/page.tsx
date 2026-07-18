@@ -11,25 +11,21 @@ import { getChapterBySlug } from '../../../data/curriculum';
 import { normalizeChunks } from '../../../types/curriculum';
 import type { Chunk } from '../../../types/curriculum';
 import type { SM2Grade } from '../../../types/spacedRepetition';
+import { GRADE_STYLE, formatVNDate } from '../../../lib/theme/grades';
+import { Eyebrow } from '../../../components/ui/Eyebrow';
+import { ProgressBar } from '../../../components/ui/ProgressBar';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const GRADE_META: Record<
-  SM2Grade,
-  { label: string; sub: string; color: string; bg: string; border: string }
-> = {
-  5: { label: 'Hoàn hảo',       sub: 'Nhớ ngay, không do dự',   color: 'text-emerald-300', bg: 'bg-emerald-500/10', border: 'border-emerald-500/40' },
-  4: { label: 'Tốt',            sub: 'Đúng, nhưng hơi chậm',    color: 'text-cyan-300',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/40'    },
-  3: { label: 'Khó khăn',       sub: 'Nhớ ra nhưng mất công',   color: 'text-amber-300',   bg: 'bg-amber-500/10',   border: 'border-amber-500/40'   },
-  2: { label: 'Lờ mờ',          sub: 'Sai, dễ hơn sau khi xem', color: 'text-orange-300',  bg: 'bg-orange-500/10',  border: 'border-orange-500/40'  },
-  1: { label: 'Gần như quên',   sub: 'Sai và khó nhớ lại',      color: 'text-red-300',     bg: 'bg-red-500/10',     border: 'border-red-500/40'     },
-  0: { label: 'Quên hoàn toàn', sub: 'Không nhớ gì cả',         color: 'text-rose-400',    bg: 'bg-rose-500/10',    border: 'border-rose-500/40'    },
+// `sub` stays local — see lib/theme/grades.ts for why it isn't merged in.
+const GRADE_SUB: Record<SM2Grade, string> = {
+  5: 'Nhớ ngay, không do dự',
+  4: 'Đúng, nhưng hơi chậm',
+  3: 'Nhớ ra nhưng mất công',
+  2: 'Sai, dễ hơn sau khi xem',
+  1: 'Sai và khó nhớ lại',
+  0: 'Không nhớ gì cả',
 };
-
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -42,20 +38,20 @@ const STEP_LABELS: Record<Step, string> = {
 
 function NotFoundScreen({ slug }: { slug: string }) {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div className="text-center space-y-5 max-w-sm">
         <div className="text-5xl" aria-hidden="true">🔍</div>
-        <h1 className="text-2xl font-bold text-slate-100">Không tìm thấy chương</h1>
-        <p className="text-slate-400 font-mono text-sm">
-          Slug <code className="text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">{slug}</code>{' '}
+        <h1 className="text-2xl font-bold text-ink">Không tìm thấy chương</h1>
+        <p className="text-ink-dim font-mono text-sm">
+          Slug <code className="text-ink-dim bg-surface-2 px-1.5 py-0.5 rounded">{slug}</code>{' '}
           không tồn tại trong curriculum.
         </p>
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg
-            border border-slate-700 bg-slate-800 hover:bg-slate-700
-            text-slate-200 text-sm font-semibold transition-colors duration-150
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            border border-border-strong bg-surface hover:bg-surface-hover
+            text-ink text-sm font-semibold transition-colors duration-150
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
         >
           ← Về trang chủ
         </Link>
@@ -160,26 +156,24 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
 
   if (done) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-6">
         <div className="text-center space-y-5 max-w-sm w-full">
           <div className="text-6xl" aria-hidden="true">🏆</div>
-          <h2 className="text-2xl font-bold text-slate-100">Hoàn thành toàn bộ chương!</h2>
-          <p className="text-slate-400 font-mono text-sm">{title}</p>
+          <h2 className="text-2xl font-bold text-ink">Hoàn thành toàn bộ chương!</h2>
+          <p className="text-ink-dim font-mono text-sm">{title}</p>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 text-left">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-slate-600 mb-3">
-              Lịch ôn tập
-            </p>
+          <div className="rounded-xl border border-border bg-surface p-5 text-left">
+            <Eyebrow className="mb-3">Lịch ôn tập</Eyebrow>
             <div className="space-y-1">
               {chunks.map((c) => {
                 const card = getCard(c.id);
                 return (
                   <div key={c.id} className="flex items-center justify-between gap-3 py-1.5
-                    border-b border-slate-800/50 last:border-0">
-                    <span className="font-mono text-xs text-slate-500 flex-shrink-0 w-14">{c.id}</span>
-                    <span className="text-xs text-slate-400 truncate flex-1 min-w-0">{c.concept}</span>
-                    <span className="font-mono text-xs text-indigo-300 flex-shrink-0 tabular-nums">
-                      {card?.next_review_date ? formatDate(card.next_review_date) : '—'}
+                    border-b border-border last:border-0">
+                    <span className="font-mono text-xs text-ink-faint flex-shrink-0 w-14">{c.id}</span>
+                    <span className="text-xs text-ink-dim truncate flex-1 min-w-0">{c.concept}</span>
+                    <span className="font-mono text-xs text-signal flex-shrink-0 tabular-nums">
+                      {card?.next_review_date ? formatVNDate(card.next_review_date) : '—'}
                     </span>
                   </div>
                 );
@@ -191,8 +185,8 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
             <button
               type="button"
               onClick={() => { setCurrentChunkIndex(0); setStep(1); setDone(false); }}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700
-                bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold
+              className="flex-1 px-4 py-2.5 rounded-lg border border-border-strong
+                bg-surface hover:bg-surface-hover text-ink text-sm font-semibold
                 transition-colors duration-150"
             >
               Học lại từ đầu
@@ -200,8 +194,8 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
             <button
               type="button"
               onClick={() => router.push('/')}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-indigo-500/50
-                bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-sm font-semibold
+              className="flex-1 px-4 py-2.5 rounded-lg border border-signal/50
+                bg-signal/10 hover:bg-signal/15 text-signal text-sm font-semibold
                 transition-colors duration-150"
             >
               ← Trang chủ
@@ -213,13 +207,13 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-bg text-ink">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 opacity-25"
         style={{
           background:
-            'radial-gradient(ellipse 70% 50% at 50% -5%, rgba(99,102,241,0.18) 0%, transparent 65%)',
+            'radial-gradient(ellipse 70% 50% at 50% -5%, color-mix(in srgb, var(--color-signal) 18%, transparent) 0%, transparent 65%)',
         }}
       />
 
@@ -227,15 +221,13 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
 
         <header className="mb-8 flex items-start justify-between">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-indigo-400/60">
-              DSA / {slug}
-            </p>
-            <h1 className="text-base font-bold text-slate-200 mt-0.5">{title}</h1>
+            <Eyebrow tone="signal" className="tracking-[0.3em]">DSA / {slug}</Eyebrow>
+            <h1 className="text-base font-bold text-ink mt-0.5">{title}</h1>
           </div>
           <Link
             href="/"
-            className="font-mono text-xs text-slate-600 hover:text-slate-400
-              transition-colors focus-visible:outline-none focus-visible:text-slate-300 mt-1"
+            className="font-mono text-xs text-ink-faint hover:text-ink-dim
+              transition-colors focus-visible:outline-none focus-visible:text-ink mt-1"
           >
             ← Home
           </Link>
@@ -250,30 +242,23 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                   className={[
                     'rounded-full transition-all duration-300',
                     i < currentChunkIndex
-                      ? 'w-2 h-2 bg-indigo-400'
+                      ? 'w-2 h-2 bg-signal/70'
                       : i === currentChunkIndex
-                      ? 'w-2.5 h-2.5 bg-indigo-500 ring-2 ring-indigo-500/30'
-                      : 'w-2 h-2 bg-slate-700',
+                      ? 'w-2.5 h-2.5 bg-signal ring-2 ring-signal/30'
+                      : 'w-2 h-2 bg-border-strong',
                   ].join(' ')}
                 />
               ))}
             </div>
-            <span className="font-mono text-xs text-slate-500 tabular-nums">
+            <span className="font-mono text-xs text-ink-faint tabular-nums">
               {currentChunkIndex + 1} / {total}
             </span>
           </div>
-          <div className="h-0.5 w-full bg-slate-800 rounded-full overflow-hidden"
-            role="progressbar"
-            aria-valuenow={currentChunkIndex + 1}
-            aria-valuemin={1}
-            aria-valuemax={total}
-          >
-            <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full
-                transition-all duration-500 ease-out"
-              style={{ width: `${((currentChunkIndex + 1) / total) * 100}%` }}
-            />
-          </div>
+          <ProgressBar
+            value={((currentChunkIndex + 1) / total) * 100}
+            tone="signal"
+            label="Tiến độ chương học"
+          />
         </div>
 
         <div className="flex gap-1 mb-6" role="tablist" aria-label="Các bước học">
@@ -286,10 +271,10 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                 'flex-1 py-1.5 rounded text-center font-mono text-[10px]',
                 'uppercase tracking-widest border select-none transition-colors duration-200',
                 step === s
-                  ? 'border-indigo-500/60 bg-indigo-500/10 text-indigo-300'
+                  ? 'border-signal/60 bg-signal/10 text-signal'
                   : step > s
-                  ? 'border-slate-700/40 bg-slate-800/30 text-slate-600 line-through'
-                  : 'border-slate-800 bg-transparent text-slate-700',
+                  ? 'border-border/60 bg-surface/60 text-ink-faint line-through'
+                  : 'border-border bg-transparent text-ink-faint/60',
               ].join(' ')}
             >
               {s}. {STEP_LABELS[s]}
@@ -299,7 +284,7 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
 
         <div
           key={`${chunk.id}-${step}`}
-          className="rounded-xl border border-slate-800 bg-slate-900/70 backdrop-blur-sm
+          className="rounded-xl border border-border bg-surface/70 backdrop-blur-sm
             p-7 shadow-2xl shadow-black/50 space-y-8"
           style={{ animation: 'fadeUp 0.25s ease-out both' }}
         >
@@ -312,10 +297,10 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                     type="button"
                     onClick={() => setStep(chunk.feynman_prompt ? 2 : chunk.code_snippet ? 3 : 4)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg
-                      bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold
-                      border border-indigo-500 shadow-lg shadow-indigo-900/40
+                      bg-signal hover:bg-signal/90 text-bg text-sm font-semibold
+                      border border-signal shadow-lg shadow-signal/20
                       transition-all duration-150 active:scale-95
-                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
                   >
                     Chuyển tiếp
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -328,7 +313,7 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
             </section>
           )}
 
-          {step >= 2 && <hr className="border-slate-800" aria-hidden="true" />}
+          {step >= 2 && <hr className="border-border" aria-hidden="true" />}
 
           {step >= 2 && chunk.feynman_prompt && (
             <section aria-label="Feynman Technique">
@@ -336,7 +321,7 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
             </section>
           )}
 
-          {step >= 3 && <hr className="border-slate-800" aria-hidden="true" />}
+          {step >= 3 && <hr className="border-border" aria-hidden="true" />}
 
           {step >= 3 && chunk.code_snippet && (
             <section aria-label="Active Recall">
@@ -344,14 +329,12 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
             </section>
           )}
 
-          {step >= 4 && <hr className="border-slate-800" aria-hidden="true" />}
+          {step >= 4 && <hr className="border-border" aria-hidden="true" />}
 
           {step === 4 && (
             <section aria-label="Đánh giá SRS và chuyển chunk">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-indigo-400/70 mb-1">
-                SuperMemo-2 — Tự đánh giá
-              </p>
-              <p className="text-sm text-slate-300 leading-relaxed mb-5">
+              <Eyebrow tone="signal" className="mb-1">SuperMemo-2 — Tự đánh giá</Eyebrow>
+              <p className="text-sm text-ink-dim leading-relaxed mb-5">
                 Bạn nhớ khái niệm này ở mức độ nào?
               </p>
 
@@ -360,7 +343,7 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2"
                     role="group" aria-label="Chọn mức độ ghi nhớ (0–5)">
                     {([5, 4, 3, 2, 1, 0] as SM2Grade[]).map((g) => {
-                      const m = GRADE_META[g];
+                      const m = GRADE_STYLE[g];
                       const sel = pendingGrade === g;
                       return (
                         <button key={g} type="button" onClick={() => setPendingGrade(g)}
@@ -368,18 +351,18 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                           className={[
                             'flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-lg border',
                             'text-left transition-all duration-150 active:scale-95',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal',
                             sel
                               ? `${m.bg} ${m.border} ${m.color}`
-                              : 'border-slate-700/60 bg-slate-800/40 text-slate-400 hover:border-slate-600',
+                              : 'border-border bg-surface-2/60 text-ink-faint hover:border-border-strong',
                           ].join(' ')}
                         >
-                          <span className={`font-mono text-xs font-bold ${sel ? m.color : 'text-slate-500'}`}>
+                          <span className={`font-mono text-xs font-bold ${sel ? m.color : 'text-ink-faint'}`}>
                             {g}/5
                           </span>
                           <span className="text-xs font-semibold leading-tight">{m.label}</span>
-                          <span className={`text-[10px] leading-tight ${sel ? '' : 'text-slate-600'}`}>
-                            {m.sub}
+                          <span className={`text-[10px] leading-tight ${sel ? '' : 'text-ink-faint/70'}`}>
+                            {GRADE_SUB[g]}
                           </span>
                         </button>
                       );
@@ -387,8 +370,8 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                   </div>
 
                   <div className="flex items-center justify-between mt-4">
-                    <p className="text-xs text-slate-600 font-mono">
-                      {pendingGrade === null ? 'Chọn một mức độ bên trên' : `${GRADE_META[pendingGrade].label} — ${pendingGrade * 20}%`}
+                    <p className="text-xs text-ink-faint font-mono">
+                      {pendingGrade === null ? 'Chọn một mức độ bên trên' : `${GRADE_STYLE[pendingGrade].label} — ${pendingGrade * 20}%`}
                     </p>
                     <button
                       type="button"
@@ -397,10 +380,10 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                       className={[
                         'px-5 py-2 rounded-lg text-sm font-semibold border',
                         'transition-all duration-150 active:scale-95',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal',
                         pendingGrade === null
-                          ? 'border-slate-700 text-slate-600 bg-slate-800/50 cursor-not-allowed'
-                          : 'border-indigo-500 bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/40',
+                          ? 'border-border text-ink-faint bg-surface-2/50 cursor-not-allowed'
+                          : 'border-signal bg-signal hover:bg-signal/90 text-bg shadow-lg shadow-signal/20',
                       ].join(' ')}
                     >
                       Lưu điểm
@@ -411,25 +394,25 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
 
               {gradeCommitted && pendingGrade !== null && (
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-5 py-4 space-y-1.5"
+                  <div className="rounded-lg border border-success/30 bg-success/5 px-5 py-4 space-y-1.5"
                     role="status" aria-live="polite">
                     <div className="flex items-center gap-2">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                        <path d="M2.5 7l3 3 6-6" stroke="#34d399" strokeWidth="1.5"
+                        <path d="M2.5 7l3 3 6-6" stroke="var(--color-success)" strokeWidth="1.5"
                           strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      <p className="text-sm font-semibold text-emerald-300">
+                      <p className="text-sm font-semibold text-success">
                         Đã lưu — SM-2: <span className="font-mono">{pendingGrade}/5</span>
-                        <span className="ml-2 font-normal text-emerald-400/60">({pendingGrade * 20}%)</span>
+                        <span className="ml-2 font-normal text-success/60">({pendingGrade * 20}%)</span>
                       </p>
                     </div>
                     {committedCard?.next_review_date && (
-                      <p className="text-xs font-mono text-slate-400 pl-5">
+                      <p className="text-xs font-mono text-ink-dim pl-5">
                         Ôn tập tiếp:{' '}
-                        <strong className="text-indigo-300">
-                          {formatDate(committedCard.next_review_date)}
+                        <strong className="text-signal">
+                          {formatVNDate(committedCard.next_review_date)}
                         </strong>
-                        <span className="text-slate-600 ml-2">
+                        <span className="text-ink-faint ml-2">
                           (sau {committedCard.interval_days} ngày · EF {committedCard.ease_factor.toFixed(2)})
                         </span>
                       </p>
@@ -441,9 +424,9 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                       <button type="button" onClick={goNextChunk}
                         className="w-full inline-flex items-center justify-center gap-2
                           px-6 py-2.5 rounded-lg text-sm font-semibold border
-                          bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500
-                          shadow-lg shadow-indigo-900/40 transition-all duration-150 active:scale-95
-                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                          bg-signal hover:bg-signal/90 text-bg border-signal
+                          shadow-lg shadow-signal/20 transition-all duration-150 active:scale-95
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal">
                         Hoàn thành chương
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                           <path d="M7 2l5 5-5 5M2 7h10" stroke="currentColor" strokeWidth="1.5"
@@ -457,9 +440,9 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                           onClick={() => router.push(`/exam/${examId}`)}
                           className="w-full inline-flex items-center justify-center gap-3
                             px-6 py-4 rounded-xl text-base font-bold border
-                            bg-red-600 hover:bg-red-500 text-white border-red-500
-                            shadow-xl shadow-red-900/50 transition-all duration-150 active:scale-[0.98]
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">
+                            bg-danger hover:bg-danger/90 text-bg border-danger
+                            shadow-xl shadow-danger/20 transition-all duration-150 active:scale-[0.98]
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger">
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                             <path d="M6 4l8 6-8 6V4z" fill="currentColor" />
                           </svg>
@@ -475,12 +458,12 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
                     <div className="flex justify-end">
                       <button type="button" onClick={goNextChunk}
                         className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg
-                          text-sm font-semibold border bg-indigo-600 hover:bg-indigo-500
-                          text-white border-indigo-500 shadow-lg shadow-indigo-900/40
+                          text-sm font-semibold border bg-signal hover:bg-signal/90
+                          text-bg border-signal shadow-lg shadow-signal/20
                           transition-all duration-150 active:scale-95
-                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal">
                         Chuyển sang bài tiếp theo
-                        <span className="font-mono text-indigo-200/70 text-xs">
+                        <span className="font-mono text-bg/60 text-xs">
                           ({currentChunkIndex + 2}/{total})
                         </span>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -501,37 +484,13 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 flex justify-end">
             <button type="button" onClick={goNextChunk}
-              className="text-xs font-mono text-slate-700 hover:text-slate-500 transition-colors">
+              className="text-xs font-mono text-ink-faint/60 hover:text-ink-faint transition-colors">
               skip → (chỉ hiện ở dev)
             </button>
           </div>
         )}
 
       </div>
-
-      <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .theory-body p  { margin-bottom: 0.55rem; }
-        .theory-body ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.55rem; }
-        .theory-body ol { list-style: decimal; padding-left: 1.2rem; margin-bottom: 0.55rem; }
-        .theory-body li { margin-bottom: 0.25rem; font-size: 0.85rem; }
-        .theory-body table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.75rem; }
-        .theory-body th { text-align: left; font-weight: 600; color: #94a3b8; border-bottom: 1px solid rgba(148,163,184,0.15); padding: 0.4rem 0.6rem; }
-        .theory-body td { color: #cbd5e1; border-bottom: 1px solid rgba(148,163,184,0.08); padding: 0.4rem 0.6rem; }
-        .theory-body code {
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          font-size: 0.8em;
-          background: rgba(99,102,241,0.13);
-          color: #a5b4fc;
-          padding: 0.1em 0.35em;
-          border-radius: 3px;
-        }
-        .theory-body strong { color: #e2e8f0; font-weight: 600; }
-        .theory-body em    { color: #94a3b8; font-style: italic; }
-      `}</style>
     </div>
   );
 }

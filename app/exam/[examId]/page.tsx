@@ -39,9 +39,9 @@ function ProblemPicker({
   onSelect: (index: number) => void;
 }) {
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-6">
       <div className="w-full max-w-md space-y-4">
-        <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest text-center">
+        <p className="text-[10px] font-mono text-ink-faint uppercase tracking-widest text-center">
           Bộ đề: {examId} · {problems.length} bài
         </p>
         <div className="space-y-2">
@@ -50,13 +50,13 @@ function ProblemPicker({
               key={p.id}
               type="button"
               onClick={() => onSelect(i)}
-              className="w-full text-left px-5 py-4 rounded-lg border border-slate-800
-                bg-slate-900/60 hover:bg-slate-800/60 hover:border-slate-700
+              className="w-full text-left px-5 py-4 rounded-lg border border-border
+                bg-surface hover:bg-surface-hover hover:border-border-strong
                 transition-colors duration-150 focus-visible:outline-none
-                focus-visible:ring-2 focus-visible:ring-cyan-500"
+                focus-visible:ring-2 focus-visible:ring-signal"
             >
-              <p className="text-sm font-semibold text-slate-200">{p.title}</p>
-              <p className="text-xs font-mono text-slate-600 mt-1">
+              <p className="text-sm font-semibold text-ink">{p.title}</p>
+              <p className="text-xs font-mono text-ink-faint mt-1">
                 {p.test_cases.length} test cases · {p.language}
               </p>
             </button>
@@ -102,21 +102,21 @@ export default function ExamPage({ params }: PageProps) {
   // ── Unknown examId ────────────────────────────────────────────────────────
   if (!problems) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-6">
         <div className="text-center space-y-4 max-w-sm">
           <p className="text-4xl" aria-hidden="true">🔍</p>
-          <h1 className="text-xl font-bold text-slate-200 font-mono">
+          <h1 className="text-xl font-bold text-ink font-mono">
             Exam not found
           </h1>
-          <p className="text-sm text-slate-500 font-mono">
-            <code className="text-slate-400">examId: {examId}</code> không tồn tại
+          <p className="text-sm text-ink-faint font-mono">
+            <code className="text-ink-dim">examId: {examId}</code> không tồn tại
             trong registry.
           </p>
           <button
             type="button"
             onClick={() => router.push('/learn/pointers')}
-            className="mt-4 px-5 py-2 rounded-lg border border-slate-700
-              bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold
+            className="mt-4 px-5 py-2 rounded-lg border border-border-strong
+              bg-surface hover:bg-surface-hover text-ink text-sm font-semibold
               transition-colors duration-150"
           >
             ← Quay lại bài học

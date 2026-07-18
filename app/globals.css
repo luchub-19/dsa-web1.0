@@ -1,26 +1,172 @@
 @import "tailwindcss";
 
+/* ────────────────────────────────────────────────────────────────────────
+ * StudyOS design tokens
+ * ────────────────────────────────────────────────────────────────────────
+ * Single source of truth for color, surface and motion. Registered inside
+ * @theme so every token also becomes a Tailwind utility for free:
+ *   --color-signal  →  bg-signal / text-signal / border-signal / bg-signal/10 …
+ *
+ * Semantic color roles (kept stable across the app — do not repurpose):
+ *   signal   → primary / brand / default interactive (links, primary CTA,
+ *              progress fill, focus ring, wordmark accent)
+ *   violet   → Feynman / self-explanation moments
+ *   success  → mastered, correct, SM-2 grade 4–5
+ *   warning  → due for review, caution, SM-2 grade 3
+ *   danger   → forgotten, destructive actions, SM-2 grade 0–1
+ *   periwinkle → extra rotation hue for chapter cards / charts only
+ * ──────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg: #09090c;
+  --color-surface: #131318;
+  --color-surface-hover: #1b1b22;
+  --color-surface-2: #1f1f28;
+  --color-border: #26262f;
+  --color-border-strong: #34343f;
+
+  --color-ink: #eceef2;
+  --color-ink-dim: #9898a5;
+  --color-ink-faint: #56565f;
+
+  --color-signal: #34e0c4;
+  --color-violet: #a48cff;
+  --color-success: #46d489;
+  --color-warning: #f2ae4b;
+  --color-danger: #f2665f;
+  --color-periwinkle: #7c93f2;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-2: var(--color-surface-2);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-ink: var(--color-ink);
+  --color-ink-dim: var(--color-ink-dim);
+  --color-ink-faint: var(--color-ink-faint);
+
+  --color-signal: var(--color-signal);
+  --color-violet: var(--color-violet);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --color-periwinkle: var(--color-periwinkle);
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-signal) 35%, transparent);
+  color: var(--color-ink);
+}
+
+/* Thin, quiet scrollbars — matches the system/editor register instead of
+   the browser default, without fighting native scroll behaviour. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--color-bg);
+}
+
+/* ── Shared motion ────────────────────────────────────────────────────────
+ * Centralised so every page/component references the same keyframes
+ * instead of redefining them locally (previously duplicated verbatim in
+ * three separate page files). `.animate-shake` is used by
+ * ActiveRecallBlock for wrong-answer feedback — it referenced this class
+ * before it existed anywhere in the codebase, so the shake never actually
+ * played; it's defined here now. */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+@keyframes drawCurve {
+  from { stroke-dashoffset: var(--curve-length, 1200); }
+  to   { stroke-dashoffset: 0; }
+}
+
+.animate-fade-up  { animation: fadeUp 0.5s ease-out both; }
+.animate-shake    { animation: shake 0.4s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Prose content (theory / markdown bodies) ────────────────────────────
+ * Shared by ChunkViewer + the review page's read-only card. Centralised
+ * for the same reason as the keyframes above — this block used to be
+ * copy-pasted per file with the class name renamed (.theory-body vs
+ * .theory-inline) despite being near-identical. */
+
+.prose-content p  { margin-bottom: 0.6rem; }
+.prose-content ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.6rem; }
+.prose-content ol { list-style: decimal; padding-left: 1.2rem; margin-bottom: 0.6rem; }
+.prose-content li { margin-bottom: 0.3rem; }
+.prose-content table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-bottom: 0.85rem; }
+.prose-content th {
+  text-align: left; font-weight: 600; color: var(--color-ink-dim);
+  border-bottom: 1px solid var(--color-border); padding: 0.45rem 0.6rem;
+}
+.prose-content td {
+  color: var(--color-ink-dim); border-bottom: 1px solid var(--color-border);
+  padding: 0.45rem 0.6rem;
+}
+.prose-content code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: color-mix(in srgb, var(--color-signal) 12%, transparent);
+  color: var(--color-signal);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+}
+.prose-content strong { color: var(--color-ink); font-weight: 600; }
+.prose-content em     { color: var(--color-ink-dim); font-style: italic; }
+
+/* Subtle core-memory-inspired dot grid, used as ambient texture behind
+   hero sections. Kept faint on purpose — texture, not decoration. */
+.grid-texture {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-ink-dim) 60%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
 }
