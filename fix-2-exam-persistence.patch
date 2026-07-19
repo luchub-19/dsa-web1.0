@@ -1,0 +1,210 @@
+diff --git a/app/exam/[examId]/page.tsx b/app/exam/[examId]/page.tsx
+index aa7e042..c839cf6 100644
+--- a/app/exam/[examId]/page.tsx
++++ b/app/exam/[examId]/page.tsx
+@@ -3,6 +3,8 @@
+ import { use, useMemo, useState } from 'react';
+ import { useRouter, useSearchParams } from 'next/navigation';
+ import WhiteboardExam from '../../../components/WhiteboardExam';
++import { useAuth } from '../../../hooks/useAuth';
++import { saveExamSubmission } from '../../../lib/supabase/examSync';
+ import type { ExamProblem, SubmissionState } from '../../../types/exam';
+ 
+ // ─── Static exam registries ───────────────────────────────────────────────────
+@@ -82,6 +84,7 @@ function ProblemPicker({
+ export default function ExamPage({ params }: PageProps) {
+   const router = useRouter();
+   const searchParams = useSearchParams();
++  const { user } = useAuth();
+   const { examId } = use(params);
+ 
+   const problems = EXAM_REGISTRY[examId] ?? null;
+@@ -143,15 +146,14 @@ export default function ExamPage({ params }: PageProps) {
+ 
+   const problemId = stableProblem.id;
+ 
+-  function handleExamComplete(state: SubmissionState) {
+-    // In production: POST to /api/exam/submit with userId + examId + state
+-    console.info('[ExamPage] Submission complete', {
+-      examId,
+-      problemId,
+-      score: state.score,
+-      passed: state.test_results.filter((r) => r.verdict === 'accepted').length,
+-      total: state.test_results.length,
+-    });
++  function handleExamComplete(state: SubmissionState, code: string) {
++    // Khách (chưa đăng nhập) không có auth.uid() để RLS đối chiếu, nên không
++    // có nơi nào để ghi lên Supabase — vẫn cho xem kết quả bình thường ở
++    // ResultPanel, chỉ là lần nộp đó không được lưu lại. Fire-and-forget:
++    // không await, lỗi mạng (nếu có) đã tự log bên trong saveExamSubmission.
++    if (user) {
++      void saveExamSubmission(examId, problemId, code, state, user.id);
++    }
+   }
+ 
+   // ── Render ────────────────────────────────────────────────────────────────
+diff --git a/components/WhiteboardExam.tsx b/components/WhiteboardExam.tsx
+index 21d1519..193575a 100644
+--- a/components/WhiteboardExam.tsx
++++ b/components/WhiteboardExam.tsx
+@@ -10,7 +10,7 @@ import type { ExamProblem, SubmissionState } from '../types/exam';
+ 
+ interface WhiteboardExamProps {
+   problem: ExamProblem;
+-  onExamComplete?: (state: SubmissionState) => void;
++  onExamComplete?: (state: SubmissionState, code: string) => void;
+ }
+ 
+ /**
+diff --git a/hooks/useJudgeSubmission.ts b/hooks/useJudgeSubmission.ts
+index 1ceab8a..e439d2d 100644
+--- a/hooks/useJudgeSubmission.ts
++++ b/hooks/useJudgeSubmission.ts
+@@ -110,7 +110,7 @@ export interface UseJudgeSubmissionReturn {
+ 
+ export function useJudgeSubmission(
+   problem: ExamProblem,
+-  onExamComplete?: (state: SubmissionState) => void
++  onExamComplete?: (state: SubmissionState, code: string) => void
+ ): UseJudgeSubmissionReturn {
+   const [submission, dispatch] = useReducer(submissionReducer, initialSubmissionState);
+   const abortRef = useRef<AbortController | null>(null);
+@@ -156,7 +156,7 @@ export function useJudgeSubmission(
+         dispatch({ type: 'ERROR', message: finalState.error_message ?? 'Unknown error' });
+       } else {
+         dispatch({ type: 'FINISH', state: finalState });
+-        onExamComplete?.(finalState);
++        onExamComplete?.(finalState, code);
+       }
+     },
+     [problem, submission.phase, onExamComplete]
+diff --git a/lib/supabase/examSync.ts b/lib/supabase/examSync.ts
+new file mode 100644
+index 0000000..ade63f8
+--- /dev/null
++++ b/lib/supabase/examSync.ts
+@@ -0,0 +1,58 @@
++'use client';
++
++import { getSupabaseClient } from './client';
++import type { SubmissionState } from '../../types/exam';
++
++/**
++ * examSync
++ * ────────
++ * Ghi kết quả 1 lần nộp bài ở Phòng Thi (kèm code đã nộp) lên bảng
++ * `exam_submissions` (xem supabase/migrations/0004_exam_submissions.sql).
++ *
++ * LỊCH SỬ, KHÔNG UPSERT: mỗi lần chấm xong luôn INSERT 1 dòng mới — nút
++ * "Reset" trong WhiteboardExam cho phép nộp lại nhiều lần cùng 1 bài, mỗi lần
++ * là 1 bản ghi riêng (xem migration để biết lý do đầy đủ).
++ *
++ * Chỉ nên gọi hàm này với state mà phase !== 'error' — đúng như cách
++ * useJudgeSubmission.ts đã gate trước khi gọi onExamComplete(state, code), vì
++ * vậy state.score ở đây trong thực tế luôn là số (không null); vẫn ?? 0 phòng
++ * hờ vì kiểu TS của SubmissionState.score là number | null.
++ *
++ * Fail SOFT, tự try/catch toàn bộ thân hàm — xem giải thích tương tự trong
++ * feynmanSync.ts: hàm này được gọi kiểu "bắn rồi quên" trực tiếp từ ExamPage,
++ * không qua React Query, nên không có lưới an toàn nào khác bắt promise
++ * reject nếu getSupabaseClient() throw (vd thiếu .env.local).
++ */
++
++/** Lưu 1 lần nộp bài, kèm code đã nộp. Fail-soft — không bao giờ throw. */
++export async function saveExamSubmission(
++  examId: string,
++  problemId: string,
++  code: string,
++  state: SubmissionState,
++  userId: string
++): Promise<void> {
++  try {
++    const supabase = getSupabaseClient();
++    const passedCount = state.test_results.filter((r) => r.verdict === 'accepted').length;
++
++    const { error } = await supabase.from('exam_submissions').insert({
++      user_id: userId,
++      exam_id: examId,
++      problem_id: problemId,
++      code,
++      score: state.score ?? 0,
++      passed_count: passedCount,
++      total_count: state.test_results.length,
++      test_results: state.test_results,
++      compile_error: state.compile_error,
++      total_time_ms: state.total_time_ms,
++    });
++
++    if (error) {
++      console.error('[examSync] Lưu bài nộp thất bại:', error.message);
++    }
++  } catch (err) {
++    console.error('[examSync] Lưu bài nộp thất bại:', (err as Error).message);
++  }
++}
+diff --git a/supabase/migrations/0004_exam_submissions.sql b/supabase/migrations/0004_exam_submissions.sql
+new file mode 100644
+index 0000000..b1a2acf
+--- /dev/null
++++ b/supabase/migrations/0004_exam_submissions.sql
+@@ -0,0 +1,60 @@
++-- ─────────────────────────────────────────────────────────────────────────────
++-- Chạy SAU 0001-0003. Vào Supabase Dashboard → SQL Editor → New query → Run.
++--
++-- Bảng lưu kết quả nộp bài ở Phòng Thi (WhiteboardExam). Trước đây
++-- handleExamComplete (app/exam/[examId]/page.tsx) chỉ console.info rồi thôi —
++-- không có bảng nào, không có API route nào lưu lại.
++--
++-- LỊCH SỬ, KHÔNG UPSERT — giống feynman_responses và vì cùng lý do: nút
++-- "Reset" trong WhiteboardExam cho phép nộp lại nhiều lần cùng 1 bài, mỗi lần
++-- nộp là 1 dòng riêng để xem lại quá trình cải thiện qua các lần thử.
++--
++-- code lưu NGUYÊN VĂN (không phải kiểm tra IP hay chấm điểm giữ bí mật gì —
++-- đây là ứng dụng học tập cá nhân/lớp học nhỏ) để học viên xem lại chính xác
++-- mình đã nộp gì ở mỗi lần thử.
++--
++-- test_results dùng JSONB (giống scheduling_state ở sm2_cards, xem migration
++-- 0002) vì TestCaseResult[] là mảng object có shape riêng của lớp chấm bài
++-- Judge0 — không tách thành cột SQL để tránh phải ALTER TABLE mỗi khi
++-- types/exam.ts đổi field. score/passed_count/total_count tách cột riêng vì
++-- đó là khái niệm phổ quát của "1 lần nộp bài" (không phụ thuộc chi tiết
++-- Judge0), cần query/sort nhanh (vd sau này làm leaderboard hoặc lịch sử điểm).
++-- ─────────────────────────────────────────────────────────────────────────────
++
++create table if not exists public.exam_submissions (
++  id             uuid not null default gen_random_uuid() primary key,
++  user_id        uuid not null references auth.users(id) on delete cascade,
++  exam_id        text not null,
++  problem_id     text not null,
++  code           text not null,
++  score          integer not null,
++  passed_count   integer not null,
++  total_count    integer not null,
++  test_results   jsonb not null default '[]'::jsonb,
++  compile_error  text,
++  total_time_ms  integer,
++  submitted_at   timestamptz not null default now()
++);
++
++-- ─── Row Level Security: mỗi người dùng CHỈ thấy/ghi được dữ liệu của chính mình ───
++
++alter table public.exam_submissions enable row level security;
++
++create policy "Users can view own exam submissions"
++  on public.exam_submissions for select
++  using (auth.uid() = user_id);
++
++create policy "Users can insert own exam submissions"
++  on public.exam_submissions for insert
++  with check (auth.uid() = user_id);
++
++create policy "Users can delete own exam submissions"
++  on public.exam_submissions for delete
++  using (auth.uid() = user_id);
++
++-- Không có policy "update" — mỗi lần nộp là 1 dòng lịch sử bất biến.
++
++-- Index để truy vấn "lịch sử nộp bài của user cho 1 bài thi cụ thể, mới nhất
++-- trước" — đúng truy vấn 1 màn hình "xem lại các lần nộp" sẽ cần.
++create index if not exists idx_exam_submissions_user_problem
++  on public.exam_submissions (user_id, exam_id, problem_id, submitted_at desc);

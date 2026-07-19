@@ -10,7 +10,7 @@ import type { ExamProblem, SubmissionState } from '../types/exam';
 
 interface WhiteboardExamProps {
   problem: ExamProblem;
-  onExamComplete?: (state: SubmissionState) => void;
+  onExamComplete?: (state: SubmissionState, code: string) => void;
 }
 
 /**
