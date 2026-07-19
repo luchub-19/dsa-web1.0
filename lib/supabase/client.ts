@@ -14,6 +14,20 @@ import { createClient as createSupabaseClient, type SupabaseClient } from '@supa
 
 let cached: SupabaseClient | null = null;
 
+/**
+ * Ném ra khi thiếu biến môi trường Supabase — lỗi cấu hình phía dev, KHÁC
+ * với lỗi từ Supabase Auth API (sai mật khẩu, email đã tồn tại, v.v.).
+ * Message ở đây đã là tiếng Việt và đủ cụ thể để dev tự sửa, nên nơi gọi
+ * (useAuth.ts) không nên đưa qua translateAuthError() — check bằng
+ * `instanceof` để giữ nguyên message này.
+ */
+export class SupabaseNotConfiguredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SupabaseNotConfiguredError';
+  }
+}
+
 export function getSupabaseClient(): SupabaseClient {
   if (cached) return cached;
 
@@ -21,7 +35,7 @@ export function getSupabaseClient(): SupabaseClient {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    throw new Error(
+    throw new SupabaseNotConfiguredError(
       'Thiếu NEXT_PUBLIC_SUPABASE_URL hoặc NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
         'Tạo file .env.local theo mẫu .env.example và điền thông tin dự án Supabase.'
     );

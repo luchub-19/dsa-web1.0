@@ -27,7 +27,13 @@
 
   --color-ink: #eceef2;
   --color-ink-dim: #9898a5;
-  --color-ink-faint: #56565f;
+  /* A11y: #56565f cũ chỉ đạt 2.74:1 trên --color-bg (dưới cả mức tối thiểu
+   * 3:1 của WCAG cho UI/text lớn, càng xa 4.5:1 cho text thường). #7e7e88
+   * đạt 4.95:1 trên bg, 4.61:1 trên surface, 4.07:1 trên surface-2 (nền lồng
+   * sâu nhất từng dùng cùng token này) — qua ngưỡng ≥3:1 ở mọi nơi, đạt
+   * ~4.5:1 ở 2 nền phổ biến nhất. Số đo bằng công thức contrast ratio của
+   * WCAG 2.x (relative luminance sRGB). */
+  --color-ink-faint: #7e7e88;
 
   --color-signal: #34e0c4;
   --color-violet: #a48cff;
