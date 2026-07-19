@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useReducer } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { getSupabaseClient } from '../lib/supabase/client';
+import { getSupabaseClient, SupabaseNotConfiguredError } from '../lib/supabase/client';
+import { translateAuthError } from '../lib/supabase/authErrors';
 
 export interface UseAuthReturn {
   user: User | null;
@@ -11,6 +12,22 @@ export interface UseAuthReturn {
   signUp: (email: string, password: string) => Promise<{ error: string | null; needsEmailConfirm: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  /** Gửi email chứa link đặt lại mật khẩu. Không tiết lộ email có tồn tại hay không (chống dò quét). */
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  /** Đặt mật khẩu mới — gọi từ trang /reset-password, cần có session hợp lệ
+   *  (được Supabase tự thiết lập khi người dùng bấm link trong email). */
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+}
+
+/**
+ * Bọc lỗi bắt được từ catch() trước khi trả cho UI: giữ nguyên message của
+ * SupabaseNotConfiguredError (đã là tiếng Việt, đủ cụ thể để dev tự sửa),
+ * còn lại (lỗi mạng, lỗi bất ngờ...) thì đưa qua translateAuthError() để
+ * không lộ message tiếng Anh thô cho người dùng cuối.
+ */
+function toDisplayError(err: unknown): string {
+  if (err instanceof SupabaseNotConfiguredError) return err.message;
+  return translateAuthError(err);
 }
 
 // FIX: dùng useReducer thay vì 2 useState riêng (user, isLoading) — dispatch()
@@ -77,11 +94,11 @@ export function useAuth(): UseAuthReturn {
     try {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return { error: error.message, needsEmailConfirm: false };
+      if (error) return { error: translateAuthError(error), needsEmailConfirm: false };
       const needsEmailConfirm = data.session === null;
       return { error: null, needsEmailConfirm };
     } catch (err) {
-      return { error: (err as Error).message, needsEmailConfirm: false };
+      return { error: toDisplayError(err), needsEmailConfirm: false };
     }
   }, []);
 
@@ -89,9 +106,31 @@ export function useAuth(): UseAuthReturn {
     try {
       const supabase = getSupabaseClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error: error?.message ?? null };
+      return { error: error ? translateAuthError(error) : null };
     } catch (err) {
-      return { error: (err as Error).message };
+      return { error: toDisplayError(err) };
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string) => {
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      return { error: error ? translateAuthError(error) : null };
+    } catch (err) {
+      return { error: toDisplayError(err) };
+    }
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      return { error: error ? translateAuthError(error) : null };
+    } catch (err) {
+      return { error: toDisplayError(err) };
     }
   }, []);
 
@@ -104,5 +143,5 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
-  return { user: state.user, isLoading: state.isLoading, signUp, signIn, signOut };
+  return { user: state.user, isLoading: state.isLoading, signUp, signIn, signOut, resetPassword, updatePassword };
 }

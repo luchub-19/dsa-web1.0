@@ -7,11 +7,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { Eyebrow } from '../../components/ui/Eyebrow';
 import { Button } from '../../components/ui/Button';
 
-type Mode = 'signin' | 'signup';
+type Mode = 'signin' | 'signup' | 'forgot';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -19,11 +19,23 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmNotice, setConfirmNotice] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+
+    if (mode === 'forgot') {
+      const { error } = await resetPassword(email);
+      setSubmitting(false);
+      if (error) {
+        setError(error);
+        return;
+      }
+      setResetSent(true);
+      return;
+    }
 
     if (mode === 'signin') {
       const { error } = await signIn(email, password);
@@ -66,7 +78,11 @@ export default function LoginPage() {
             Study<span className="text-signal">OS</span>
           </h1>
           <Eyebrow className="mt-2">
-            {mode === 'signin' ? 'Đăng nhập để đồng bộ tiến độ' : 'Tạo tài khoản mới'}
+            {mode === 'signin'
+              ? 'Đăng nhập để đồng bộ tiến độ'
+              : mode === 'signup'
+                ? 'Tạo tài khoản mới'
+                : 'Đặt lại mật khẩu'}
           </Eyebrow>
         </div>
 
@@ -86,6 +102,62 @@ export default function LoginPage() {
               ← Quay lại đăng nhập
             </button>
           </div>
+        ) : resetSent ? (
+          <div className="rounded-xl border border-success/30 bg-success/5 p-6 text-center space-y-3">
+            <p className="text-2xl" aria-hidden="true">📬</p>
+            <p className="text-sm text-success font-semibold">Kiểm tra email của bạn</p>
+            <p className="text-xs text-ink-dim leading-relaxed">
+              Nếu <strong className="text-ink">{email}</strong> có trong hệ thống, một link đặt lại
+              mật khẩu sẽ được gửi tới trong ít phút.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setResetSent(false); setMode('signin'); }}
+              className="text-xs font-mono text-signal hover:text-signal/80 underline underline-offset-2"
+            >
+              ← Quay lại đăng nhập
+            </button>
+          </div>
+        ) : mode === 'forgot' ? (
+          <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-surface p-6">
+            <p className="text-xs text-ink-dim leading-relaxed">
+              Nhập email đã đăng ký, mình sẽ gửi link đặt lại mật khẩu.
+            </p>
+            <div>
+              <label htmlFor="forgot-email" className="block text-xs font-mono text-ink-faint mb-1.5 uppercase tracking-widest">
+                Email
+              </label>
+              <input
+                id="forgot-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface-2 px-4 py-2.5
+                  text-sm text-ink outline-none focus:border-signal/60 focus:ring-1
+                  focus:ring-signal/40 transition-all duration-150"
+                placeholder="ban@vidu.com"
+              />
+            </div>
+
+            {error && (
+              <p className="text-xs text-danger bg-danger/5 border border-danger/20 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+              {submitting ? 'Đang gửi…' : 'Gửi link đặt lại mật khẩu'}
+            </Button>
+
+            <p className="text-center text-xs text-ink-dim">
+              <button type="button" onClick={() => { setMode('signin'); setError(null); }}
+                className="text-signal hover:text-signal/80 underline underline-offset-2">
+                ← Quay lại đăng nhập
+              </button>
+            </p>
+          </form>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-surface p-6">
             <div>
@@ -107,9 +179,20 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-mono text-ink-faint mb-1.5 uppercase tracking-widest">
-                Mật khẩu
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-xs font-mono text-ink-faint uppercase tracking-widest">
+                  Mật khẩu
+                </label>
+                {mode === 'signin' && (
+                  <button
+                    type="button"
+                    onClick={() => { setMode('forgot'); setError(null); }}
+                    className="text-xs text-signal hover:text-signal/80 underline underline-offset-2"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                )}
+              </div>
               <input
                 id="password"
                 type="password"
