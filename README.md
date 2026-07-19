@@ -188,8 +188,9 @@ Dự án đủ 15/15 chương đã "nạp Feynman" xong xuôi — nhưng riêng 
 
 ## 📜 Giấy phép / License
 
-Chưa xác định. Vui lòng liên hệ trước khi sử dụng lại mã nguồn.
-*(Not yet specified. Ask before you yoink the code — we're watching. Probably.)*
+MIT — xem file [`LICENSE`](./LICENSE). Dùng, sửa, phân phối lại thoải mái,
+kể cả cho mục đích thương mại, miễn giữ lại thông báo bản quyền gốc.
+*(MIT — see [`LICENSE`](./LICENSE). Use it, fork it, ship it — just keep the copyright notice.)*
 
 ---
 
