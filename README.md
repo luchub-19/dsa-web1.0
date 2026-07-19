@@ -36,7 +36,8 @@
 | ⏰ Spaced Repetition (SM-2) | Thuật toán xác định thời điểm tối ưu để ôn tập trước khi quên | An algorithm that knows exactly when you're about to forget everything — creepier than your ex, more useful too |
 | 🖊️ Whiteboard Exam | Mô phỏng môi trường thi/phỏng vấn thực tế, viết code trên bảng trắng số, chặn dán và chấm tự động qua Judge0 | Simulates real interview pressure — no paste, no autocomplete, no mercy, just you and a blinking cursor |
 | 🔐 Xác thực qua Supabase | Đăng nhập và đồng bộ tiến độ học tập cá nhân giữa nhiều thiết bị | Login so your shame is tracked, saved, and synced across every device you own |
-| 📊 Dashboard thống kê | Hiển thị số chương, số chunk đã hoàn thành, số thẻ đến hạn ôn tập | A dashboard with numbers that go up, engineered to trigger the same dopamine as a mobile game |
+| 📊 Dashboard thống kê | Đường cong ghi nhớ trực quan, số chunk đã học, số thẻ đến hạn ôn tập hôm nay | A visual forgetting curve plus numbers that go up, engineered to trigger the same dopamine as a mobile game |
+| ⚙️ Cài đặt & Reset | Xem thống kê học tập (số thẻ, lượt ôn), đặt lại toàn bộ tiến độ SM-2 khi cần học lại từ đầu | A stats page and a "burn it all down" reset button, for when you want to pretend the last 3 months of forgetting never happened |
 | ✅ Unit test | 40 test cho module SM-2, đảm bảo thuật toán ôn tập không âm thầm tính sai | 40 tests guarding the SM-2 algorithm like overly committed security dogs |
 
 **Nội dung hiện có:** Giới thiệu DSA, Đệ quy, Fractal, Quy hoạch động, Phân tích thuật toán, Sắp xếp, Con trỏ, File & Stream, Cấu trúc dữ liệu cơ bản, Danh sách liên kết, Cây, Cây cân bằng, B-Tree, Hàng đợi ưu tiên, Bảng băm.
@@ -48,9 +49,10 @@
 
 ```
 Frontend      → Next.js 16 (App Router) + React 19 + TypeScript (strict mode)
-Styling       → Tailwind CSS v4
+Styling       → Tailwind CSS v4 + hệ design token riêng (màu/font tùy biến — xem app/globals.css)
+State/Data    → TanStack React Query (optimistic updates, đồng bộ nền với Supabase)
 Backend/Auth  → Supabase (PostgreSQL + Auth, đồng bộ tiến độ SM-2)
-Chấm code     → Judge0, gọi qua API route riêng (key không lộ ra client)
+Chấm code     → Judge0, qua API route riêng có rate-limit (key không lộ ra client)
 Markdown      → react-markdown + remark-gfm + remark-math + rehype-katex
 Testing       → Vitest + jsdom
 Data          → JSON tĩnh trong thư mục /data
@@ -58,13 +60,24 @@ Data          → JSON tĩnh trong thư mục /data
 
 ```
 dsa-web1.0/
-├── app/                 # Routes: learn, review, exam, login, api/judge0
-├── components/          # ActiveRecallBlock, FeynmanInput, ChunkViewer, WhiteboardExam...
-├── hooks/               # useSpacedRepetition, useAuth
-├── lib/                 # SM-2 core logic, parseCodeBlanks, sanitizeHtml, Judge0 client/server
-├── types/               # Curriculum, SpacedRepetition, Exam type definitions
-├── data/                # File JSON nội dung bài học theo từng chương
-└── supabase/migrations/ # Schema cơ sở dữ liệu (bảng sm2_cards + RLS)
+├── app/                    # Routes: learn, review, exam, login, settings, api/judge0
+│                           # + SEO/branding: manifest.ts, sitemap.ts, robots.ts,
+│                           #   opengraph-image.tsx, icon.svg, not-found/error/loading
+├── components/
+│   ├── ui/                 # Card, Button, Eyebrow, ProgressBar — bộ UI dùng chung
+│   ├── WhiteboardExam.tsx  # Orchestrator phòng thi: ghép Editor + ProblemPanel +
+│   │                       # ResultPanel + LiveTimer lại với nhau
+│   └── ...                 # ActiveRecallBlock, FeynmanInput, ChunkViewer, RetentionCurve...
+├── hooks/                  # useSpacedRepetition (React Query), useAuth, useJudgeSubmission
+├── lib/
+│   ├── theme/              # Bảng màu/nhãn SM-2 dùng chung giữa trang learn & review
+│   ├── supabase/           # Client + logic đồng bộ SM-2
+│   └── ...                 # sm2.ts, judge0.ts/judge0Server.ts, parseCodeBlanks,
+│                           # sanitizeHtml, rateLimit
+├── types/                  # Curriculum, SpacedRepetition, Exam type definitions
+├── data/                   # File JSON nội dung bài học theo từng chương + đề thi
+└── supabase/migrations/    # 0001 schema gốc → 0002 gộp cột thuật toán vào
+                            # 1 cột scheduling_state (JSONB)
 ```
 
 ---
@@ -81,11 +94,13 @@ npm install
 
 **1. Cấu hình Supabase** (đăng nhập + đồng bộ tiến độ)
 1. Tạo project miễn phí tại [supabase.com](https://supabase.com)
-2. Vào **SQL Editor**, chạy toàn bộ nội dung file `supabase/migrations/0001_sm2_cards.sql`
+2. Vào **SQL Editor**, chạy lần lượt theo đúng thứ tự:
+   - `supabase/migrations/0001_sm2_cards.sql` (tạo bảng `sm2_cards` + RLS)
+   - `supabase/migrations/0002_sm2_cards_jsonb_scheduling_state.sql` (gộp các cột thuật toán riêng lẻ vào 1 cột `scheduling_state` JSONB — chạy **sau** 0001)
 3. Vào **Project Settings → API**, lấy `Project URL` và `anon public key`
 
 **2. Cấu hình Judge0** (phòng thi code)
-Để trống sẽ dùng endpoint public mặc định (rate-limit thấp, phù hợp test cá nhân). Nếu triển khai cho lớp học, khuyến nghị đăng ký key tại [RapidAPI Judge0 CE](https://rapidapi.com/judge0-official/api/judge0-ce).
+Để trống sẽ dùng endpoint public mặc định (rate-limit thấp, phù hợp test cá nhân). Nếu triển khai cho lớp học có nhiều học sinh dùng cùng lúc, chọn 1 trong 2: đăng ký key tại [RapidAPI Judge0 CE](https://rapidapi.com/judge0-official/api/judge0-ce), hoặc tự host Judge0 riêng. Chi tiết 2 lựa chọn có ghi trong `.env.example`.
 
 **3. Tạo file `.env.local`**
 ```bash
@@ -130,7 +145,15 @@ npm run build        # build production thử
 > ### 🇬🇧 English, roast edition:
 > All 15 chapters are now fully alive — no more "living on vibes alone." 57 chunks got real fill-in-the-blank exercises at the exact spots where understanding actually matters (base cases, partition boundaries, the one line that decides whether your BST stays a BST). The rest are theory chunks that never needed a coding drill in the first place — nobody needs to fill in a blank to understand Big-O notation. There's still an unused `blanks` field in the schema, quietly unemployed, still holding onto hope for a future feature that gives it a job.
 
-**Đã hoàn thành:** ✅ Bổ sung `code_snippet` và `feynman_prompt` cho toàn bộ 15 file JSON.
+**Đã hoàn thành:**
+
+✅ Bổ sung `code_snippet` và `feynman_prompt` cho toàn bộ 15 file JSON.
+
+✅ Nâng cấp giao diện toàn diện — hệ design token riêng, font đôi (Inter + JetBrains Mono, đều có subset tiếng Việt), bộ UI component dùng chung, và Phòng Thi được nối lại đúng kiến trúc module (`Editor` / `ProblemPanel` / `ResultPanel` / `LiveTimer` + hook `useJudgeSubmission`) sau một sự cố hai đợt việc song song từng làm gãy build trên Vercel. Tiện thể dọn vài bug âm thầm tồn tại từ trước: trang `/settings` không có lối vào nào trong UI, animation rung khi trả lời sai gọi 1 class CSS chưa từng được định nghĩa, và `.env.example` được nhắc trong hướng dẫn cài đặt nhưng chưa từng tồn tại trong repo.
+
+> ### 🇬🇧 English, roast edition:
+> The UI got a full glow-up: a real design token system, a proper two-font setup (both confirmed to render Vietnamese diacritics correctly — checked before shipping, not after), a shared component kit, and the Exam Room got split back into its actual intended architecture after two rounds of AI-assisted work collided and took down a Vercel build for a hot minute. Also quietly fixed some skeletons that were just chilling in the closet: `/settings` existed and worked but had zero links pointing to it (a whole page, unreachable, very haunted-house energy), the wrong-answer shake animation was calling a CSS class that didn't exist (so it just... never shook, for its entire life), and `.env.example` had been mentioned in the setup guide this whole time despite never actually existing in the repo. Iconic.
+
 **To-do tiếp theo:** Cân nhắc dashboard phân tích học tập chi tiết hơn, đề thi cho các chương ngoài Linked List, và quyết định số phận của trường `blanks` chưa dùng đến.
 
 ---
@@ -151,13 +174,13 @@ Rồi một hôm (chắc lúc đang trốn học bài bằng cách... làm việ
 
 Và đúng rồi, phải thú nhận luôn cho nó minh bạch: một phần kha khá của quá trình này là **vibe coding** — tức là vừa code vừa hỏi AI, vừa nhìn code chạy vừa đoán xem tại sao nó chạy được, và thỉnh thoảng copy một đoạn rồi tự thuyết phục bản thân "chắc mình hiểu nó rồi đó". Không có gì phải giấu — thời này ai cũng dùng AI để code nhanh hơn, quan trọng là hiểu được cái mình đang ráp vào, chứ không phải paste xong nhắm mắt deploy (nói vậy chứ cũng có vài lần nhắm mắt thật).
 
-Dự án vẫn còn dở dang — 12/15 chương vẫn đang chờ được "nạp Feynman" — nhưng riêng cái việc nó đã sống được từ 1 ý tưởng lúc nửa đêm cho tới một cái web chạy thật, có test, có người dùng đăng nhập được, thì tự thấy đã là một chiến thắng nho nhỏ rồi.
+Dự án đủ 15/15 chương đã "nạp Feynman" xong xuôi — nhưng riêng cái việc nó đã sống được từ 1 ý tưởng lúc nửa đêm cho tới một cái web chạy thật, có test, có người dùng đăng nhập được, thì tự thấy đã là một chiến thắng nho nhỏ rồi.
 
 *English translation, emotionally unfiltered: this whole thing was born out of pure academic desperation — drowning in DSA lecture slides, half-finished notes, and a YouTube watch history that would concern a therapist. The original plan was "make a tiny notes page." The notes page had other plans. It looked me dead in the eye and became a spaced-repetition engine with a login system.*
 
 *And yes — full disclosure, because we're not cowards — a good chunk of this was built via what the youths call "vibe coding": me, an AI, and a shared understanding that we'd figure out why the code worked AFTER it worked. Some of it was copy-pasted with the confidence of someone who definitely read every line (I did not always read every line). No shame in it — everyone's doing the human-plus-AI combo now, the only real sin is deploying something you don't understand even a little bit. I understood at least, like, 60% of it in real time. The other 40% I understood retroactively, through debugging, at 2 AM, powered entirely by spite and cà phê sữa đá.*
 
-*12 chapters are still mid-transformation from "raw JSON" to "actual pedagogy." But hey — it went from a 1 AM shower thought to a real website with real tests and real users who can log in. That's not nothing. That's honestly kind of a big deal, and I will be accepting compliments about it indefinitely.*
+*All 15 chapters have finished their "raw JSON" to "actual pedagogy" glow-up. But hey — it went from a 1 AM shower thought to a real website with real tests and real users who can log in. That's not nothing. That's honestly kind of a big deal, and I will be accepting compliments about it indefinitely.*
 
 — **Khanh Nguyen** ([@luchub-19](https://github.com/luchub-19))
 
