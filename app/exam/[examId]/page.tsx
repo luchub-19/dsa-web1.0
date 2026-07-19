@@ -3,6 +3,8 @@
 import { use, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import WhiteboardExam from '../../../components/WhiteboardExam';
+import { useAuth } from '../../../hooks/useAuth';
+import { saveExamSubmission } from '../../../lib/supabase/examSync';
 import type { ExamProblem, SubmissionState } from '../../../types/exam';
 
 // ─── Static exam registries ───────────────────────────────────────────────────
@@ -82,6 +84,7 @@ function ProblemPicker({
 export default function ExamPage({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const { examId } = use(params);
 
   const problems = EXAM_REGISTRY[examId] ?? null;
@@ -143,15 +146,14 @@ export default function ExamPage({ params }: PageProps) {
 
   const problemId = stableProblem.id;
 
-  function handleExamComplete(state: SubmissionState) {
-    // In production: POST to /api/exam/submit with userId + examId + state
-    console.info('[ExamPage] Submission complete', {
-      examId,
-      problemId,
-      score: state.score,
-      passed: state.test_results.filter((r) => r.verdict === 'accepted').length,
-      total: state.test_results.length,
-    });
+  function handleExamComplete(state: SubmissionState, code: string) {
+    // Khách (chưa đăng nhập) không có auth.uid() để RLS đối chiếu, nên không
+    // có nơi nào để ghi lên Supabase — vẫn cho xem kết quả bình thường ở
+    // ResultPanel, chỉ là lần nộp đó không được lưu lại. Fire-and-forget:
+    // không await, lỗi mạng (nếu có) đã tự log bên trong saveExamSubmission.
+    if (user) {
+      void saveExamSubmission(examId, problemId, code, state, user.id);
+    }
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

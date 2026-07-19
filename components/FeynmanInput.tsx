@@ -11,8 +11,11 @@ const MIN_CHARS = 50;
 interface FeynmanInputProps {
   /** The Feynman prompt shown above the textarea */
   prompt: string;
-  /** Called when the user submits a valid explanation (≥ MIN_CHARS) */
-  onComplete: () => void;
+  /**
+   * Called when the user submits a valid explanation (≥ MIN_CHARS). Carries
+   * the explanation text — caller decides how/whether to persist it.
+   */
+  onComplete: (response: string) => void;
 }
 
 /**
@@ -25,7 +28,14 @@ interface FeynmanInputProps {
  *  - User must type ≥ 50 characters before the "Next Chunk" button enables.
  *  - Character counter shows live progress; turns green when threshold met.
  *  - Textarea is uncontrolled in DOM terms but state is tracked via React.
- *  - No external state managers — self-contained.
+ *  - No external state managers — self-contained: this component doesn't talk
+ *    to Supabase itself, it just reports the finished text via onComplete().
+ *
+ * FIX: `onComplete` used to be `() => void` — the explanation text lived only
+ * in this component's local `value` state and was thrown away the instant
+ * onComplete() fired (the parent's step-transition key change unmounts this
+ * whole subtree — see app/learn/[slug]/page.tsx). Now onComplete(value)
+ * carries the text out so the parent can persist it before the transition.
  */
 export default function FeynmanInput({
   prompt,
@@ -49,9 +59,13 @@ export default function FeynmanInput({
   const handleSubmit = useCallback(() => {
     if (!isUnlocked) return;
     setSubmitted(true);
-    // Small delay so user sees success state before transitioning
-    setTimeout(onComplete, 600);
-  }, [isUnlocked, onComplete]);
+    // Small delay so user sees success state before transitioning. `value`
+    // must stay in the dep array: the textarea disables right after this so
+    // it can't change again, but without the dep this closure would keep
+    // whatever `value` was at the last render where isUnlocked/onComplete
+    // changed identity — not necessarily the latest text.
+    setTimeout(() => onComplete(value), 600);
+  }, [isUnlocked, onComplete, value]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

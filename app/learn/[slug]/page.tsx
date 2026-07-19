@@ -7,6 +7,8 @@ import ChunkViewer from '../../../components/ChunkViewer';
 import FeynmanInput from '../../../components/FeynmanInput';
 import ActiveRecallBlock from '../../../components/ActiveRecallBlock';
 import { useSpacedRepetition } from '../../../hooks/useSpacedRepetition';
+import { useAuth } from '../../../hooks/useAuth';
+import { saveFeynmanResponse } from '../../../lib/supabase/feynmanSync';
 import { getChapterBySlug } from '../../../data/curriculum';
 import { normalizeChunks } from '../../../types/curriculum';
 import type { Chunk } from '../../../types/curriculum';
@@ -118,6 +120,7 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
   const [gradeCommitted, setGradeCommitted] = useState(false);
 
   const { seedChunks, recordReview, getCard, isLoading } = useSpacedRepetition();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!isLoading) seedChunks(chunkIds);
@@ -138,9 +141,20 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }: 
     }
   }, [isLastChunk]);
 
-  const handleFeynmanComplete = useCallback(() => {
-    setStep(chunk.code_snippet ? 3 : 4);
-  }, [chunk.code_snippet]);
+  const handleFeynmanComplete = useCallback(
+    (response: string) => {
+      // Khách (chưa đăng nhập) không có auth.uid() để RLS đối chiếu, nên
+      // không có nơi nào để ghi lên Supabase — vẫn cho học tiếp bình thường,
+      // giống cách sm2_cards xử lý khách (xem useSpacedRepetition.ts). Fire-
+      // and-forget: không await, không được để độ trễ mạng làm chậm việc
+      // chuyển bước của người đang học.
+      if (user) {
+        void saveFeynmanResponse(chunk.id, response, user.id);
+      }
+      setStep(chunk.code_snippet ? 3 : 4);
+    },
+    [chunk.code_snippet, chunk.id, user]
+  );
 
   const handleRecallComplete = useCallback(() => {
     setStep(4);

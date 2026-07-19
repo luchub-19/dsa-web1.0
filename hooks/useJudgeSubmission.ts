@@ -110,7 +110,7 @@ export interface UseJudgeSubmissionReturn {
 
 export function useJudgeSubmission(
   problem: ExamProblem,
-  onExamComplete?: (state: SubmissionState) => void
+  onExamComplete?: (state: SubmissionState, code: string) => void
 ): UseJudgeSubmissionReturn {
   const [submission, dispatch] = useReducer(submissionReducer, initialSubmissionState);
   const abortRef = useRef<AbortController | null>(null);
@@ -156,7 +156,7 @@ export function useJudgeSubmission(
         dispatch({ type: 'ERROR', message: finalState.error_message ?? 'Unknown error' });
       } else {
         dispatch({ type: 'FINISH', state: finalState });
-        onExamComplete?.(finalState);
+        onExamComplete?.(finalState, code);
       }
     },
     [problem, submission.phase, onExamComplete]

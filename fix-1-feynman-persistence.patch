@@ -1,0 +1,195 @@
+diff --git a/app/learn/[slug]/page.tsx b/app/learn/[slug]/page.tsx
+index 7f6e41b..d9f6257 100644
+--- a/app/learn/[slug]/page.tsx
++++ b/app/learn/[slug]/page.tsx
+@@ -7,6 +7,8 @@ import ChunkViewer from '../../../components/ChunkViewer';
+ import FeynmanInput from '../../../components/FeynmanInput';
+ import ActiveRecallBlock from '../../../components/ActiveRecallBlock';
+ import { useSpacedRepetition } from '../../../hooks/useSpacedRepetition';
++import { useAuth } from '../../../hooks/useAuth';
++import { saveFeynmanResponse } from '../../../lib/supabase/feynmanSync';
+ import { getChapterBySlug } from '../../../data/curriculum';
+ import { normalizeChunks } from '../../../types/curriculum';
+ import type { Chunk } from '../../../types/curriculum';
+@@ -118,6 +120,7 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }:
+   const [gradeCommitted, setGradeCommitted] = useState(false);
+ 
+   const { seedChunks, recordReview, getCard, isLoading } = useSpacedRepetition();
++  const { user } = useAuth();
+ 
+   useEffect(() => {
+     if (!isLoading) seedChunks(chunkIds);
+@@ -138,9 +141,20 @@ function LessonPlayer({ chunks, chunkIds, total, title, slug, examId, router }:
+     }
+   }, [isLastChunk]);
+ 
+-  const handleFeynmanComplete = useCallback(() => {
+-    setStep(chunk.code_snippet ? 3 : 4);
+-  }, [chunk.code_snippet]);
++  const handleFeynmanComplete = useCallback(
++    (response: string) => {
++      // Khách (chưa đăng nhập) không có auth.uid() để RLS đối chiếu, nên
++      // không có nơi nào để ghi lên Supabase — vẫn cho học tiếp bình thường,
++      // giống cách sm2_cards xử lý khách (xem useSpacedRepetition.ts). Fire-
++      // and-forget: không await, không được để độ trễ mạng làm chậm việc
++      // chuyển bước của người đang học.
++      if (user) {
++        void saveFeynmanResponse(chunk.id, response, user.id);
++      }
++      setStep(chunk.code_snippet ? 3 : 4);
++    },
++    [chunk.code_snippet, chunk.id, user]
++  );
+ 
+   const handleRecallComplete = useCallback(() => {
+     setStep(4);
+diff --git a/components/FeynmanInput.tsx b/components/FeynmanInput.tsx
+index 0e8dbfe..3267596 100644
+--- a/components/FeynmanInput.tsx
++++ b/components/FeynmanInput.tsx
+@@ -11,8 +11,11 @@ const MIN_CHARS = 50;
+ interface FeynmanInputProps {
+   /** The Feynman prompt shown above the textarea */
+   prompt: string;
+-  /** Called when the user submits a valid explanation (≥ MIN_CHARS) */
+-  onComplete: () => void;
++  /**
++   * Called when the user submits a valid explanation (≥ MIN_CHARS). Carries
++   * the explanation text — caller decides how/whether to persist it.
++   */
++  onComplete: (response: string) => void;
+ }
+ 
+ /**
+@@ -25,7 +28,14 @@ interface FeynmanInputProps {
+  *  - User must type ≥ 50 characters before the "Next Chunk" button enables.
+  *  - Character counter shows live progress; turns green when threshold met.
+  *  - Textarea is uncontrolled in DOM terms but state is tracked via React.
+- *  - No external state managers — self-contained.
++ *  - No external state managers — self-contained: this component doesn't talk
++ *    to Supabase itself, it just reports the finished text via onComplete().
++ *
++ * FIX: `onComplete` used to be `() => void` — the explanation text lived only
++ * in this component's local `value` state and was thrown away the instant
++ * onComplete() fired (the parent's step-transition key change unmounts this
++ * whole subtree — see app/learn/[slug]/page.tsx). Now onComplete(value)
++ * carries the text out so the parent can persist it before the transition.
+  */
+ export default function FeynmanInput({
+   prompt,
+@@ -49,9 +59,13 @@ export default function FeynmanInput({
+   const handleSubmit = useCallback(() => {
+     if (!isUnlocked) return;
+     setSubmitted(true);
+-    // Small delay so user sees success state before transitioning
+-    setTimeout(onComplete, 600);
+-  }, [isUnlocked, onComplete]);
++    // Small delay so user sees success state before transitioning. `value`
++    // must stay in the dep array: the textarea disables right after this so
++    // it can't change again, but without the dep this closure would keep
++    // whatever `value` was at the last render where isUnlocked/onComplete
++    // changed identity — not necessarily the latest text.
++    setTimeout(() => onComplete(value), 600);
++  }, [isUnlocked, onComplete, value]);
+ 
+   const handleKeyDown = useCallback(
+     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+diff --git a/lib/supabase/feynmanSync.ts b/lib/supabase/feynmanSync.ts
+new file mode 100644
+index 0000000..171f055
+--- /dev/null
++++ b/lib/supabase/feynmanSync.ts
+@@ -0,0 +1,43 @@
++'use client';
++
++import { getSupabaseClient } from './client';
++
++/**
++ * feynmanSync
++ * ───────────
++ * Ghi câu trả lời Feynman lên bảng `feynman_responses`
++ * (xem supabase/migrations/0003_feynman_responses.sql).
++ *
++ * LỊCH SỬ, KHÔNG UPSERT: mỗi lần gọi saveFeynmanResponse() luôn INSERT 1 dòng
++ * mới, kể cả khi user học lại cùng 1 chunk — không có khái niệm "ghi đè bản
++ * cũ" như sm2_cards.
++ *
++ * Fail SOFT như mọi module sync khác trong lib/supabase/: lỗi không được chặn
++ * luồng học. KHÁC MỘT ĐIỂM so với sm2Sync.ts: các hàm ở sm2Sync.ts không tự
++ * try/catch quanh getSupabaseClient() vì luôn được gọi qua React Query
++ * (useSpacedRepetition.ts) — chính React Query là lưới an toàn bắt promise
++ * reject. Hàm dưới đây được gọi trực tiếp kiểu "bắn rồi quên" (fire-and-forget,
++ * không qua React Query) từ LessonPlayer, nên PHẢI tự try/catch toàn bộ,
++ * kể cả trường hợp getSupabaseClient() throw SupabaseNotConfiguredError khi
++ * thiếu .env.local — nếu không sẽ thành unhandled promise rejection.
++ */
++
++/** Lưu 1 câu trả lời Feynman. Fail-soft — không bao giờ throw. */
++export async function saveFeynmanResponse(
++  chunkId: string,
++  response: string,
++  userId: string
++): Promise<void> {
++  try {
++    const supabase = getSupabaseClient();
++    const { error } = await supabase
++      .from('feynman_responses')
++      .insert({ user_id: userId, chunk_id: chunkId, response });
++
++    if (error) {
++      console.error('[feynmanSync] Lưu câu trả lời thất bại:', error.message);
++    }
++  } catch (err) {
++    console.error('[feynmanSync] Lưu câu trả lời thất bại:', (err as Error).message);
++  }
++}
+diff --git a/supabase/migrations/0003_feynman_responses.sql b/supabase/migrations/0003_feynman_responses.sql
+new file mode 100644
+index 0000000..a4653b3
+--- /dev/null
++++ b/supabase/migrations/0003_feynman_responses.sql
+@@ -0,0 +1,44 @@
++-- ─────────────────────────────────────────────────────────────────────────────
++-- Chạy SAU 0001 + 0002. Vào Supabase Dashboard → SQL Editor → New query → Run.
++--
++-- Bảng lưu câu trả lời Feynman (học viên tự diễn giải khái niệm bằng lời của
++-- mình). Trước đây bị vứt bỏ ngay sau submit — component FeynmanInput chỉ giữ
++-- state cục bộ và không truyền `value` đi đâu cả.
++--
++-- LỊCH SỬ, KHÔNG UPSERT: mỗi lần submit là 1 dòng mới, kể cả khi học lại cùng
++-- 1 chunk (bấm "Học lại từ đầu" hoặc quay lại /learn/[slug] sau). Vì vậy PK là
++-- `id` (uuid) chứ không phải (user_id, chunk_id) như sm2_cards — 1 cặp
++-- user+chunk có thể có nhiều dòng theo thời gian. Không có updated_at/trigger
++-- vì dòng đã ghi là bất biến (không có luồng "sửa lại câu trả lời cũ").
++-- ─────────────────────────────────────────────────────────────────────────────
++
++create table if not exists public.feynman_responses (
++  id          uuid not null default gen_random_uuid() primary key,
++  user_id     uuid not null references auth.users(id) on delete cascade,
++  chunk_id    text not null,
++  response    text not null,
++  created_at  timestamptz not null default now()
++);
++
++-- ─── Row Level Security: mỗi người dùng CHỈ thấy/ghi được dữ liệu của chính mình ───
++
++alter table public.feynman_responses enable row level security;
++
++create policy "Users can view own feynman responses"
++  on public.feynman_responses for select
++  using (auth.uid() = user_id);
++
++create policy "Users can insert own feynman responses"
++  on public.feynman_responses for insert
++  with check (auth.uid() = user_id);
++
++create policy "Users can delete own feynman responses"
++  on public.feynman_responses for delete
++  using (auth.uid() = user_id);
++
++-- Không có policy "update" — dòng lịch sử coi là bất biến sau khi ghi.
++
++-- Index để truy vấn "toàn bộ câu trả lời của user cho 1 chunk, mới nhất trước"
++-- nhanh hơn khi dữ liệu lớn dần (vd 1 màn hình xem lại lịch sử sau này).
++create index if not exists idx_feynman_responses_user_chunk
++  on public.feynman_responses (user_id, chunk_id, created_at desc);
