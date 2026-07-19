@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { useSpacedRepetition } from '../../hooks/useSpacedRepetition';
+import { deleteAllFeynmanResponses } from '../../lib/supabase/feynmanSync';
+import { deleteAllExamSubmissions } from '../../lib/supabase/examSync';
 import { Eyebrow } from '../../components/ui/Eyebrow';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -40,6 +42,18 @@ export default function SettingsPage() {
   function handleReset() {
     if (!canReset) return;
     resetAll();
+    // FIX: resetAll() ở trên chỉ xóa sm2_cards (đúng phạm vi của
+    // useSpacedRepetition — hook đó không nên biết tới Feynman/Exam). Trước
+    // khi có feynman_responses/exam_submissions, "xóa toàn bộ" == xóa sm2_cards
+    // nên không sao; giờ 2 bảng đó tồn tại và cũng là "tiến độ", nên nút này
+    // phải xóa cả 2 thì mới đúng như label + lời cảnh báo "Không thể hoàn
+    // tác". Gọi fire-and-forget (void) giống hệt deleteAllCards() bên trong
+    // resetAll() — không await vì UI đã optimistic-xong ngay khi resetAll()
+    // xóa local state, phần Supabase là best-effort chạy nền.
+    if (user) {
+      void deleteAllFeynmanResponses(user.id);
+      void deleteAllExamSubmissions(user.id);
+    }
     setResetDone(true);
     setConfirmText('');
   }
@@ -110,7 +124,8 @@ export default function SettingsPage() {
             <Eyebrow tone="danger">Vùng nguy hiểm</Eyebrow>
             <p className="text-sm text-ink mt-1">Đặt lại toàn bộ tiến độ học tập</p>
             <p className="text-xs text-ink-dim mt-1 leading-relaxed">
-              Xóa vĩnh viễn toàn bộ lịch sử ôn tập SM-2 (kể cả trên Supabase nếu đã đăng nhập).
+              Xóa vĩnh viễn toàn bộ lịch sử ôn tập SM-2, câu trả lời Feynman và lịch sử nộp bài ở
+              Phòng Thi (kể cả trên Supabase nếu đã đăng nhập).
               Bài học vẫn còn nguyên, nhưng bạn sẽ bắt đầu lại từ đầu như chưa từng học.
               <strong className="text-danger"> Không thể hoàn tác.</strong>
             </p>

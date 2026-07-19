@@ -41,3 +41,23 @@ export async function saveFeynmanResponse(
     console.error('[feynmanSync] Lưu câu trả lời thất bại:', (err as Error).message);
   }
 }
+
+/**
+ * Xóa toàn bộ lịch sử câu trả lời Feynman của người dùng trên Supabase.
+ * Fail-soft.
+ *
+ * KHÔNG tự try/catch quanh getSupabaseClient() như saveFeynmanResponse() ở
+ * trên — khác chỗ đó, hàm này chỉ được gọi từ luồng "Xóa toàn bộ tiến độ" ở
+ * Settings (xem app/settings/page.tsx), nơi luôn đã có userId thật (tức đã
+ * đăng nhập Supabase thành công trước đó) — nghĩa là getSupabaseClient() chắc
+ * chắn từng chạy được và đang cache sẵn client, nên không thể throw
+ * SupabaseNotConfiguredError ở đây. Giống hệt lý do deleteAllCards() trong
+ * sm2Sync.ts không cần try/catch riêng.
+ */
+export async function deleteAllFeynmanResponses(userId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.from('feynman_responses').delete().eq('user_id', userId);
+  if (error) {
+    console.error('[feynmanSync] Xóa toàn bộ thất bại:', error.message);
+  }
+}
